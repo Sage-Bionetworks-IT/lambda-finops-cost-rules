@@ -1,11 +1,155 @@
-# lambda-template
-A GitHub template for quickly starting a new AWS lambda project.
+# lambda-finops-cost-rules
+A lambda for generating the JSON string used by the Rules property of an
+AWS::CE::CostCategory CloudFormation resource.
 
-## Naming
-Naming conventions:
-* for a vanilla Lambda: `lambda-<context>`
-* for a Cloudformation Transform macro: `cfn-macro-<context>`
-* for a Cloudformation Custom Resource: `cfn-cr-<context>`
+## Design
+This lambda is intended to transform the chart of accounts returned from
+[lambda-mips-api](https://github.com/Sage-Bionetworks-IT/lambda-mips-api),
+combined with current AWS account tags, into cost-category rules (JSON string)
+appropriate to pass to the [`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
+
+### Category Rules
+This lambda will create cost-category rules that check a list of tags (provided
+as a template parameter) for each account code listed in our chart of accounts,
+also create rules for each account tagged with a listed tag, and finally create
+rules to inherit the value from a listed tag.
+
+The order of the rules matters because processing will stop at the first match.
+For more information on rule processing, see the [AWS User Guide](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html).
+
+### Components
+![Component Diagram](docs/component.diagram.png)
+
+### Template Parameters
+The following template parameters are used to configure CloudFormation resources:
+| Template Parameter | Description |
+| --- | --- |
+| AcmCertificateArn | ACM certificate when using custom DNS names with Cloudfront |
+| DnsNames | List of custom DNS names for Cloudfront |
+| CacheTTL | TTL value for CloudFront cache objects. |
+
+The following template parameters are passed through as environment variables
+| Template Parameter | Environment Variable | Description |
+| --- | --- | --- |
+| TagList | TagList | List of tag names that may contain category information |
+
+### Triggering
+The CloudFormation template will output the available endpoint URL for triggering the lambda, e.g.:
+`https://abcxyz.cloudfront.net/rules`
+
+These URLs can be also constructed by appending the API Gateway paths to the CloudFormation domain.
+
+#### Origin URL
+The CloudFormation template also outputs the origin URL behind the CloudFront distribution for debugging purposes.
+
+### Response
+This lambda will produce the example output when provided with the example input and default parameters:
+
+#### Example Input
+Example chart of accounts returned from `lambda-mips-api`:
+```json
+[
+    "000000": "No Program / 000000",
+    "000001": "Other",
+    "123456": "Program Part A",
+    "654321": "Other Program"
+]
+```
+
+Example AWS account tags:
+| Account ID | Account CostCenter Tag |
+| --- | --- |
+| 111122223333 | `Program Part A / 123456` |
+| 222233334444 | `Program Part B / 123456` |
+| 333344445555 | `Other Program / 654321` |
+
+
+#### Example Output
+A JSON string to be passed to a Rules property of an AWS::CE::CostCategory resource:
+```json
+[
+    {
+        "Type": "REGULAR",
+        "Value": "123456 Program Part A",
+        "Rule": {
+            "Tags": {
+                "Key": "CostCenterOther",
+                "Values": [ "123456" ],
+                "MatchOptions": [ "ENDS_WITH" ]
+            }
+        }
+    },
+    {
+        "Type": "REGULAR",
+        "Value": "123456 Program Part A",
+        "Rule": {
+            "Tags": {
+                "Key": "CostCenter",
+                "Values": [ "123456" ],
+                "MatchOptions": [ "ENDS_WITH" ]
+            }
+        }
+    },
+    {
+        "Type": "REGULAR",
+        "Value": "123456 Program Part A",
+        "Rule": {
+            "Dimensions": {
+                "Key": "LINKED_ACCOUNT",
+                "Values": [ "111122223333", "222233334444" ],
+                "MatchOptions": [ "EQUALS" ]
+            }
+        }
+    },
+    {
+        "Type": "REGULAR",
+        "Value": "654321 Other Program",
+        "Rule": {
+            "Tags": {
+                "Key": "CostCenterOther",
+                "Values": [ "123456" ],
+                "MatchOptions": [ "ENDS_WITH" ]
+            }
+        }
+    },
+    {
+        "Type": "REGULAR",
+        "Value": "654321 Other Program",
+        "Rule": {
+            "Tags": {
+                "Key": "CostCenter",
+                "Values": [ "123456" ],
+                "MatchOptions": [ "ENDS_WITH" ]
+            }
+        }
+    },
+    {
+        "Type": "REGULAR",
+        "Value": "654321 Other Program",
+        "Rule": {
+            "Dimensions": {
+                "Key": "LINKED_ACCOUNT",
+                "Values": [ "333344445555" ]
+                "MatchOptions": [ "EQUALS" ]
+            }
+        }
+    },
+    {
+        "Type": "INHERITED_VALUE",
+        "InheritedValue": {
+            "DimensionName": "TAG",
+            "DimensionKey": "CostCenterOther"
+        }
+    },
+    {
+        "Type": "INHERITED_VALUE",
+        "InheritedValue": {
+            "DimensionName": "TAG",
+            "DimensionKey": "CostCenter"
+        }
+    }
+]
+```
 
 ## Development
 
