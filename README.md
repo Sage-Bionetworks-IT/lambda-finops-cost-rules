@@ -280,7 +280,7 @@ Running integration tests
 [requires docker](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-local-start-api.html)
 
 ```shell script
-$ sam local invoke HelloWorldFunction --event events/event.json
+$ sam local invoke Function --event events/event.json
 ```
 
 ## Deployment
@@ -330,7 +330,7 @@ config/prod/lambda-finops-cost-rules.yaml
 template:
   type: http
   url: "https://PUBLISH_BUCKET.s3.amazonaws.com/lambda-finops-cost-rules/VERSION/lambda-finops-cost-rules.yaml"
-stack_name: "lambda-template"
+stack_name: "lambda-finops-cost-rules"
 stack_tags:
   OwnerEmail: "it@sagebase.org"
 parameters:
