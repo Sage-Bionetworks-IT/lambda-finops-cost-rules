@@ -168,6 +168,36 @@ A JSON string to be passed to a Rules property of an AWS::CE::CostCategory resou
 ]
 ```
 
+This string can be passed to the [`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
+
+### Example Usage (sceptre)
+
+To use the output of this lambda in [sceptre](https://github.com/Sceptre/sceptre), use the [`!file` resolver](https://docs.sceptre-project.org/dev/docs/resolvers.html#file)
+
+`config/dev/ce.yaml`
+```yaml
+template:
+  path: categories.yaml
+parameters:
+  CostCategoryRules: !file https://lambda-finops-cost-rules.execute-api.amazonaws.com/rules
+```
+
+`templates/categories.yaml`
+```yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'All Cost Categories'
+Parameters:
+  CostCategoryRules:
+    Type: String
+Resources:
+  ProgramCodeCostCategory:
+    Type: 'AWS::CE::CostCategory'
+    Properties:
+      Name: 'Program Code'
+      RuleVersion: 'CostCategoryExpression.v1'
+      Rules: !Ref CostCategoryRules
+```
+
 ## Development
 
 ### Contributions
