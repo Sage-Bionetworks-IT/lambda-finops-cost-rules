@@ -8,11 +8,27 @@ This lambda is intended to transform the chart of accounts returned from
 combined with current AWS account tags, into cost-category rules (JSON string)
 appropriate to pass to the [`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
 
+This lambda will query `lambda-mips-api` for a chart of accounts (a mapping of
+program codes and program names), and query AWS Organizations for account-level
+cost-tracking tags.
+
+Cost categories are created for each program listed in the chart of accounts.
+
+Tags may exist on either individual cloud resources or on their containing
+accounts which assign the resource costs to a particular program category.
+A list of tag names that may contain program assignments are provided as a
+template parameter.
+
 ### Category Rules
-This lambda will create cost-category rules that check a list of tags (provided
-as a template parameter) for each account code listed in our chart of accounts,
-also create rules for each account tagged with a listed tag, and finally create
-rules to inherit the value from a listed tag.
+
+Cost-category rules are created to assign line item costs to a category based on
+tags for the line item resource or its containing account.
+
+First, this lambda will create cost-category rules that check a list of tags
+(provided as a template parameter) for every combination of program code and
+tag name, also create rules for each account with an appropriate tag, and
+finally create rules to inherit the value from a listed tag if no other rule
+matches.
 
 The order of the rules matters because processing will stop at the first match.
 For more information on rule processing, see the [AWS User Guide](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html).
@@ -31,6 +47,7 @@ The following template parameters are used to configure CloudFormation resources
 The following template parameters are passed through as environment variables
 | Template Parameter | Environment Variable | Description |
 | --- | --- | --- |
+| ChartOfAccountsURL | ChartOfAccountsURL | URL to the chart of accounts endpoint provided by `lambda-mips-api` |
 | TagList | TagList | List of tag names that may contain category information |
 
 ### Triggering
