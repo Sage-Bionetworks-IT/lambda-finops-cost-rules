@@ -48,7 +48,7 @@ The following template parameters are passed through as environment variables
 | Template Parameter | Environment Variable | Description |
 | --- | --- | --- |
 | ChartOfAccountsURL | ChartOfAccountsURL | URL to the chart of accounts endpoint provided by `lambda-mips-api` |
-| TagList | TagList | List of tag names that may contain category information |
+| TagList | TagList | List of tag names that may contain cost-category assignment |
 
 ### Triggering
 The CloudFormation template will output the available endpoint URL for triggering the lambda, e.g.:
@@ -60,9 +60,11 @@ These URLs can be also constructed by appending the API Gateway paths to the Clo
 The CloudFormation template also outputs the origin URL behind the CloudFront distribution for debugging purposes.
 
 ### Response
-This lambda will produce the example output when provided with the example input and default parameters:
+This lambda will produce the example output when provided with the example external state and default parameters:
 
-#### Example Input
+#### Example External State
+The lambda queries two remote sources for their current state: the current chart of accounts from `lambda-mips-api` and current account tags from AWS Organizations.
+
 Example chart of accounts returned from `lambda-mips-api`:
 ```json
 [
@@ -73,8 +75,8 @@ Example chart of accounts returned from `lambda-mips-api`:
 ]
 ```
 
-Example AWS account tags:
-| Account ID | Account CostCenter Tag |
+Example existing AWS account tags:
+| Account ID | Tag value from a tag listed in TagList |
 | --- | --- |
 | 111122223333 | `Program Part A / 123456` |
 | 222233334444 | `Program Part B / 123456` |
@@ -183,6 +185,36 @@ parameters:
 ```
 
 `templates/categories.yaml`
+```yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'All Cost Categories'
+Parameters:
+  CostCategoryRules:
+    Type: String
+Resources:
+  ProgramCodeCostCategory:
+    Type: 'AWS::CE::CostCategory'
+    Properties:
+      Name: 'Program Code'
+      RuleVersion: 'CostCategoryExpression.v1'
+      Rules: !Ref CostCategoryRules
+```
+
+### Example Usage (org-formation)
+
+To use the output of this lambda in [org-formation](https://github.com/org-formation/org-formation-cli), use [`wget` in a `!Cmd` function](https://github.com/org-formation/org-formation-cli/blob/master/docs/task-files.md#cmd)
+
+`_tasks.yaml`
+```yaml
+CostCategories:
+  Type: update-stacks
+  Template: categories.yaml
+  StackName: 'cost-categories'
+  Parameters:
+    CostCategoryRules: !Cmd 'wget -qO- https://lambda-finops-cost-rules.execute-api.amazonaws.com/rules'
+```
+
+`categories.yaml`
 ```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'All Cost Categories'
