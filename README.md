@@ -37,13 +37,6 @@ For more information on rule processing, see the [AWS User Guide](https://docs.a
 ![Component Diagram](docs/component.diagram.png)
 
 ### Template Parameters
-The following template parameters are used to configure CloudFormation resources:
-| Template Parameter | Description |
-| --- | --- |
-| AcmCertificateArn | ACM certificate when using custom DNS names with Cloudfront |
-| DnsNames | List of custom DNS names for Cloudfront |
-| CacheTTL | TTL value for CloudFront cache objects. |
-
 The following template parameters are passed through as environment variables
 | Template Parameter | Environment Variable | Description |
 | --- | --- | --- |
@@ -52,12 +45,9 @@ The following template parameters are passed through as environment variables
 
 ### Triggering
 The CloudFormation template will output the available endpoint URL for triggering the lambda, e.g.:
-`https://abcxyz.cloudfront.net/rules`
+`https://abcxyz.execute-api.amazonaws.com/rules`
 
 These URLs can be also constructed by appending the API Gateway paths to the CloudFormation domain.
-
-#### Origin URL
-The CloudFormation template also outputs the origin URL behind the CloudFront distribution for debugging purposes.
 
 ### Response
 This lambda will produce the example output when provided with the example external state and default parameters:
