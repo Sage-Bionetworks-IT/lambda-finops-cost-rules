@@ -38,10 +38,10 @@ For more information on rule processing, see the [AWS User Guide](https://docs.a
 
 ### Template Parameters
 The following template parameters are passed through as environment variables
-| Template Parameter | Environment Variable | Description |
-| --- | --- | --- |
-| ChartOfAccountsURL | ChartOfAccountsURL | URL to the chart of accounts endpoint provided by `lambda-mips-api` |
-| TagList | TagList | List of tag names that may contain cost-category assignment |
+| Template Parameter | Environment Variable | Description | Example Value |
+| --- | --- | --- | --- |
+| ChartOfAccountsURL | ChartOfAccountsURL | URL to the chart of accounts endpoint provided by `lambda-mips-api` | https://lambda-mips-api.execute-api.amazonaws.com/accounts |
+| TagList | TagList | Comma-separated list of tag names that may contain cost-category assignment | CostCenter,CostCenterOther |
 
 ### Triggering
 The CloudFormation template will output the available endpoint URL for triggering the lambda, e.g.:
@@ -55,7 +55,7 @@ This lambda will produce the example output when provided with the example exter
 #### Example External State
 The lambda queries two remote sources for their current state: the current chart of accounts from `lambda-mips-api` and current account tags from AWS Organizations.
 
-Example chart of accounts returned from `lambda-mips-api`:
+Example chart of accounts returned by `lambda-mips-api` at `ChartOfAccountsURL`:
 ```json
 [
     "000000": "No Program / 000000",
@@ -66,7 +66,7 @@ Example chart of accounts returned from `lambda-mips-api`:
 ```
 
 Example existing AWS account tags:
-| Account ID | Tag value from a tag listed in TagList |
+| Account ID | Tag value from a tag listed in `TagList` |
 | --- | --- |
 | 111122223333 | `Program Part A / 123456` |
 | 222233334444 | `Program Part B / 123456` |
@@ -324,22 +324,23 @@ aws serverlessrepo put-application-policy \
 
 ### Sceptre
 Create the following [sceptre](https://github.com/Sceptre/sceptre) file
-config/prod/lambda-template.yaml
+config/prod/lambda-finops-cost-rules.yaml
 
 ```yaml
 template:
   type: http
-  url: "https://PUBLISH_BUCKET.s3.amazonaws.com/lambda-template/VERSION/lambda-template.yaml"
+  url: "https://PUBLISH_BUCKET.s3.amazonaws.com/lambda-finops-cost-rules/VERSION/lambda-finops-cost-rules.yaml"
 stack_name: "lambda-template"
 stack_tags:
-  Department: "Platform"
-  Project: "Infrastructure"
   OwnerEmail: "it@sagebase.org"
+parameters:
+  TagList: "CostCenter,CostCenterOther"
+  ChartOfAccountsURL: "https://lambda-mips-api.execute-api.amazonaws.com/accounts"
 ```
 
 Install the lambda using sceptre:
 ```shell script
-sceptre --var "profile=my-profile" --var "region=us-east-1" launch prod/lambda-template.yaml
+sceptre --var "profile=my-profile" --var "region=us-east-1" launch prod/lambda-finops-cost-rules.yaml
 ```
 
 ### AWS Console
