@@ -164,14 +164,14 @@ This string can be passed to the [`Rules` property for `AWS::CE::CostCategory`](
 
 ### Example Usage (sceptre)
 
-To use the output of this lambda in [sceptre](https://github.com/Sceptre/sceptre), use the [`!file` resolver](https://docs.sceptre-project.org/dev/docs/resolvers.html#file)
+To use the output of this lambda in [sceptre](https://github.com/Sceptre/sceptre), use `wget` in a [`!rcmd` resolver](https://docs.sceptre-project.org/dev/docs/resolvers.html#file)
 
 `config/dev/ce.yaml`
 ```yaml
 template:
   path: categories.yaml
 parameters:
-  CostCategoryRules: !file https://lambda-finops-cost-rules.execute-api.amazonaws.com/rules
+  CostCategoryRules: !rcmd wget -qO- https://lambda-finops-cost-rules.execute-api.amazonaws.com/rules
 ```
 
 `templates/categories.yaml`
@@ -192,7 +192,7 @@ Resources:
 
 ### Example Usage (org-formation)
 
-To use the output of this lambda in [org-formation](https://github.com/org-formation/org-formation-cli), use [`wget` in a `!Cmd` function](https://github.com/org-formation/org-formation-cli/blob/master/docs/task-files.md#cmd)
+To use the output of this lambda in [org-formation](https://github.com/org-formation/org-formation-cli), use `wget` in a [`!Cmd` function](https://github.com/org-formation/org-formation-cli/blob/master/docs/task-files.md#cmd)
 
 `_tasks.yaml`
 ```yaml
