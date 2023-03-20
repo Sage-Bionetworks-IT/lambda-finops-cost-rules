@@ -5,6 +5,7 @@ import re
 
 import boto3
 import requests
+import validators
 
 
 LOG = logging.getLogger(__name__)
@@ -91,6 +92,21 @@ def collect_account_tag_codes(tag_names):
                     break
 
     return account_codes
+
+def collect_chart_of_accounts(chart_url):
+    '''
+    Query lambda-mips-api for current chart of accounts.
+    '''
+    # check for valid url
+    if not validators.url(chart_url):
+        raise Exception(f'Invalid URL: {check_url}')
+
+    # get chart of accounts
+    chart_json = requests.get(chart_url)
+    chart_json.raise_for_status()
+
+    # expected json data
+    return chart_json.json()
 
 def _build_tag_rules(rule_name, tag_names, code):
     results = [
@@ -245,9 +261,7 @@ def lambda_handler(event, context):
         account_codes = collect_account_tag_codes(tag_list)
 
         # get chart of accounts
-        chart_json = requests.get(chart_url)
-        chart_json.raise_for_status()
-        chart_data = chart_json.json()
+        chart_data = collect_chart_of_accounts(chart_url)
 
         # generate rules
         rules_data = build_rules(chart_data, tag_list, account_codes)

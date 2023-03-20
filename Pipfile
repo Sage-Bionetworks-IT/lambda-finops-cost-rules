@@ -11,6 +11,7 @@ requests-mock = "~=1.10"
 
 [packages]
 requests = "~=2.28"
+validators = "~=0.20"
 
 [requires]
 python_version = "3.9"
