@@ -238,7 +238,7 @@ def lambda_handler(event, context):
         # get environment variables
         chart_url = _get_os_var('ChartOfAccountsURL')
 
-        _tag_list = _get_os_var('TagList')
+        _tag_list = _get_os_var('CostCenterTagList')
         tag_list = _parse_env_list(_tag_list)
 
         # get account tags

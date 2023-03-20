@@ -173,7 +173,7 @@ def test_lambda_handler(apigw_event, requests_mock, mocker):
     # mock environment variables
     env_vars = {
         'ChartOfAccountsURL': chart_url,
-        'TagList': tag_list_string,
+        'CostCenterTagList': tag_list_string,
     }
     mocker.patch.dict(os.environ, env_vars)
 
@@ -201,7 +201,7 @@ def test_lambda_handler_err(apigw_event, requests_mock, mocker):
     # mock environment variables
     env_vars = {
         'ChartOfAccountsURL': chart_url,
-        'TagList': tag_list_string,
+        'CostCenterTagList': tag_list_string,
     }
     mocker.patch.dict(os.environ, env_vars)
 
