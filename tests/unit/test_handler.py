@@ -75,7 +75,173 @@ mock_chart_json = '''{
 "654321": "Other Program"
 }'''
 
-expected_rules = ''
+# expected parsed chart of accounts
+expected_chart_dict = {
+    "000000": "No Program",
+    "000001": "Other",
+    "123456": "Program Part A",
+    "654321": "Other Program",
+}
+
+# expected set of rules built from expected_chart_dict and expected_account_codes
+expected_rules = [
+    {
+        "Rule": {
+             "Tags": {
+                 "Key": "TagOne",
+                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "Values": [ "000000" ],
+             }
+        },
+        "Type": "REGULAR",
+        "Value": "000000 No Program",
+    },
+    {
+        "Rule": {
+             "Tags": {
+                 "Key": "TagTwo",
+                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "Values": [ "000000" ],
+             }
+        },
+        "Type": "REGULAR",
+        "Value": "000000 No Program",
+    },
+    {
+        "Rule": {
+             "Tags": {
+                 "Key": "TagOne",
+                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "Values": [ "000001" ],
+             }
+        },
+        "Type": "REGULAR",
+        "Value": "000001 Other",
+    },
+    {
+        "Rule": {
+             "Tags": {
+                 "Key": "TagTwo",
+                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "Values": [ "000001" ],
+             }
+        },
+        "Type": "REGULAR",
+        "Value": "000001 Other",
+    },
+    {
+        "Rule": {
+             "Tags": {
+                 "Key": "TagOne",
+                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "Values": [ "123456" ],
+             }
+        },
+        "Type": "REGULAR",
+        "Value": "123456 Program Part A",
+    },
+    {
+        "Rule": {
+             "Tags": {
+                 "Key": "TagTwo",
+                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "Values": [ "123456" ],
+             }
+        },
+        "Type": "REGULAR",
+        "Value": "123456 Program Part A",
+    },
+    {
+        'Rule': {
+            'And': [
+                {
+                    'Dimensions': {
+                        'Key': 'LINKED_ACCOUNT',
+                        'MatchOptions': ['EQUALS'],
+                        'Values': ['111222333444', '333444555666']
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'TagOne',
+                        'MatchOptions': ['ABSENT']
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'TagTwo',
+                        'MatchOptions': ['ABSENT']
+                    }
+                }
+            ]
+        },
+        'Type': 'REGULAR',
+        'Value': '123456 Program Part A'
+    },
+    {
+        "Rule": {
+             "Tags": {
+                 "Key": "TagOne",
+                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "Values": [ "654321" ],
+             }
+        },
+        "Type": "REGULAR",
+        "Value": "654321 Other Program",
+    },
+    {
+        "Rule": {
+             "Tags": {
+                 "Key": "TagTwo",
+                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "Values": [ "654321" ],
+             }
+        },
+        "Type": "REGULAR",
+        "Value": "654321 Other Program",
+    },
+    {
+        'Rule': {
+            'And': [
+                {
+                    'Dimensions': {
+                        'Key': 'LINKED_ACCOUNT',
+                        'MatchOptions': ['EQUALS'],
+                        'Values': ['222333444555', ]
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'TagOne',
+                        'MatchOptions': ['ABSENT']
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'TagTwo',
+                        'MatchOptions': ['ABSENT']
+                    }
+                }
+            ]
+        },
+        'Type': 'REGULAR',
+        "Value": "654321 Other Program",
+    },
+    {
+        'InheritedValue': {
+            'DimensionName': 'TAG',
+            'DimensionValue': 'TagOne'
+        },
+        'Type': 'INHERITED_VALUE'
+    },
+    {
+        'InheritedValue': {
+            'DimensionName': 'TAG',
+            'DimensionValue': 'TagTwo'
+        },
+        'Type': 'INHERITED_VALUE'
+    },
+]
 
 @pytest.fixture()
 def apigw_event():
@@ -165,11 +331,40 @@ def test_account_codes():
             assert found_account_codes == expected_account_codes
 
 
+def test_collect_chart(requests_mock):
+    '''Test getting chart of accounts from lambda-mips-api'''
+
+    # mock out requests call to get chart of accounts
+    response_mock = requests_mock.get(chart_url, text=mock_chart_json)
+
+    found_chart = cost_rules.app.collect_chart_of_accounts(chart_url)
+    assert found_chart == expected_chart_dict
+
+
+def test_collect_chart_err(requests_mock):
+    '''Test getting chart of accounts from lambda-mips-api'''
+
+    invalid_url = "malformed"
+    with pytest.raises(Exception):
+        found_chart = cost_rules.app.collect_chart_of_accounts(invalid_url)
+
+
+def test_build_rules():
+    '''Test building rule list from tag list and account tags'''
+
+    found_rules = cost_rules.app.build_rules(
+            expected_chart_dict,
+            expected_tag_list,
+            expected_account_codes)
+
+    assert found_rules == expected_rules
+
+
 def _test_handler_with_env(requests_mock, mocker, event, code, body=None, error=None):
     '''Keep lambda_handler tests DRY'''
 
 
-def test_lambda_handler(apigw_event, requests_mock, mocker):
+def test_lambda_handler(apigw_event, mocker):
     # mock environment variables
     env_vars = {
         'ChartOfAccountsURL': chart_url,
@@ -182,13 +377,15 @@ def test_lambda_handler(apigw_event, requests_mock, mocker):
                  autospec=True,
                  return_value=expected_account_codes)
 
+    # mock out collect_chart_of_accounts() with mock chart of account
+    mocker.patch('cost_rules.app.collect_chart_of_accounts',
+                 autospec=True,
+                 return_value=expected_chart_dict)
+
     # mock out build_rules() with mock rules
     mocker.patch('cost_rules.app.build_rules',
                  autospec=True,
                  return_value=expected_rules)
-
-    # mock out requests call to get chart of accounts
-    response_mock = requests_mock.get(chart_url, json=mock_chart_json)
 
     # test event
     ret = cost_rules.app.lambda_handler(apigw_event, None)
@@ -197,7 +394,7 @@ def test_lambda_handler(apigw_event, requests_mock, mocker):
     assert ret['statusCode'] == 200
 
 
-def test_lambda_handler_err(apigw_event, requests_mock, mocker):
+def test_lambda_handler_err_tags(apigw_event, mocker):
     # mock environment variables
     env_vars = {
         'ChartOfAccountsURL': chart_url,
@@ -209,9 +406,6 @@ def test_lambda_handler_err(apigw_event, requests_mock, mocker):
     mocker.patch('cost_rules.app.collect_account_tag_codes',
                  autospec=True,
                  side_effect=Exception("Mock Exception"))
-
-    # mock out requests call to get chart of accounts
-    response_mock = requests_mock.get(chart_url, json=mock_chart_json)
 
     # test event
     ret = cost_rules.app.lambda_handler(apigw_event, None)
