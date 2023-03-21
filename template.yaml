@@ -12,8 +12,8 @@ Parameters:
   ChartOfAccountsURL:
     Type: String
     Description: URL to the chart of accounts endpoint provided by `lambda-mips-api`.
-  CostCenterTagList:
-    Description: Comma-separated list of tag names that may contain cost-center assignment
+  ProgramCodeTagList:
+    Description: Comma-separated list of tag names that may contain program-code assignment
     Type: String
 
 Resources:
@@ -27,12 +27,12 @@ Resources:
       Environment:
         Variables:
           ChartOfAccountsURL: !Ref ChartOfAccountsURL
-          CostCenterTagList: !Ref CostCenterTagList
+          ProgramCodeTagList: !Ref ProgramCodeTagList
       Events:
-        CostCenterRules:
+        ProgramCodeRules:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /cost-center
+            Path: /program-codes
             Method: get
 
   FunctionRole:   # execute lambda function with this role

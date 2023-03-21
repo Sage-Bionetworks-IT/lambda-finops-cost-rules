@@ -41,7 +41,7 @@ The following template parameters are passed through as environment variables
 | Template Parameter | Environment Variable | Description | Example Value |
 | --- | --- | --- | --- |
 | ChartOfAccountsURL | ChartOfAccountsURL | URL to the chart of accounts endpoint provided by `lambda-mips-api` | https://lambda-mips-api.execute-api.amazonaws.com/accounts |
-| TagList | TagList | Comma-separated list of tag names that may contain cost-category assignment | CostCenter,CostCenterOther |
+| ProgramCodeTagList | ProgramCodeTagList | Comma-separated list of tag names that may contain program-code assignment | CostCenter,CostCenterOther |
 
 ### Triggering
 The CloudFormation template will output the available endpoint URL for triggering the lambda, e.g.:

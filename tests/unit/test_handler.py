@@ -349,10 +349,10 @@ def test_collect_chart_err(requests_mock):
         found_chart = cost_rules.app.collect_chart_of_accounts(invalid_url)
 
 
-def test_build_rules():
+def test_build_program_rules():
     '''Test building rule list from tag list and account tags'''
 
-    found_rules = cost_rules.app.build_rules(
+    found_rules = cost_rules.app.build_program_rules(
             expected_chart_dict,
             expected_tag_list,
             expected_account_codes)
@@ -360,15 +360,11 @@ def test_build_rules():
     assert found_rules == expected_rules
 
 
-def _test_handler_with_env(requests_mock, mocker, event, code, body=None, error=None):
-    '''Keep lambda_handler tests DRY'''
-
-
 def test_lambda_handler(apigw_event, mocker):
     # mock environment variables
     env_vars = {
         'ChartOfAccountsURL': chart_url,
-        'CostCenterTagList': tag_list_string,
+        'ProgramCodeTagList': tag_list_string,
     }
     mocker.patch.dict(os.environ, env_vars)
 
@@ -383,7 +379,7 @@ def test_lambda_handler(apigw_event, mocker):
                  return_value=expected_chart_dict)
 
     # mock out build_rules() with mock rules
-    mocker.patch('cost_rules.app.build_rules',
+    mocker.patch('cost_rules.app.build_program_rules',
                  autospec=True,
                  return_value=expected_rules)
 
@@ -398,7 +394,7 @@ def test_lambda_handler_err_tags(apigw_event, mocker):
     # mock environment variables
     env_vars = {
         'ChartOfAccountsURL': chart_url,
-        'CostCenterTagList': tag_list_string,
+        'ProgramCodeTagList': tag_list_string,
     }
     mocker.patch.dict(os.environ, env_vars)
 

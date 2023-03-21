@@ -184,7 +184,7 @@ def _build_inherit_rules(tag_names):
     return results
 
 
-def build_rules(chart_codes, tag_names, account_codes):
+def build_program_rules(chart_codes, tag_names, account_codes):
     '''
     Build a list of cost-category rules.
     Rule order matters, first rule matched wins.
@@ -255,7 +255,7 @@ def lambda_handler(event, context):
         # get environment variables
         chart_url = _get_os_var('ChartOfAccountsURL')
 
-        _tag_list = _get_os_var('CostCenterTagList')
+        _tag_list = _get_os_var('ProgramCodeTagList')
         tag_list = _parse_env_list(_tag_list)
 
         # get account tags
@@ -265,7 +265,7 @@ def lambda_handler(event, context):
         chart_data = collect_chart_of_accounts(chart_url)
 
         # generate rules
-        rules_data = build_rules(chart_data, tag_list, account_codes)
+        rules_data = build_program_rules(chart_data, tag_list, account_codes)
 
         # return as json string
         result["body"] = json.dumps(rules_data)
