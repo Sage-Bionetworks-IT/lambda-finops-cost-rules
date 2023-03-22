@@ -1,40 +1,38 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Hello World lambda
-
-Metadata:
-  AWS::ServerlessRepo::Application:
-    Name: "lambda-template"
-    Description: "A GH template for quickly starting a new AWS lambda project."
-    Author: "Sage-Bionetworks"
-    SpdxLicenseId: "Apache-2.0"
-    # paths are relative to .aws-sam/build directory
-    LicenseUrl: "LICENSE"
-    ReadmeUrl: "README.md"
-    Labels: ["serverless", "template", "github", "quick-start"]
-    HomePageUrl: "https://github.com/Sage-Bionetworks-IT/lambda-template"
-    SemanticVersion: "0.0.3"
-    SourceCodeUrl: "https://github.com/Sage-Bionetworks-IT/lambda-template/tree/0.0.3"
+  A lambda for generating the JSON string used by the Rules property of an AWS::CE::CostCategory CloudFormation resource.
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 30
 
+Parameters:
+  ChartOfAccountsURL:
+    Type: String
+    Description: URL to the chart of accounts endpoint provided by `lambda-mips-api`.
+  ProgramCodeTagList:
+    Description: Comma-separated list of tag names that may contain program-code assignment
+    Type: String
+
 Resources:
-  HelloWorldFunction:
+  Function:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: .
-      Handler: hello_world/app.lambda_handler
+      Handler: cost_rules/app.lambda_handler
       Runtime: python3.9
       Role: !GetAtt FunctionRole.Arn
+      Environment:
+        Variables:
+          ChartOfAccountsURL: !Ref ChartOfAccountsURL
+          ProgramCodeTagList: !Ref ProgramCodeTagList
       Events:
-        HelloWorld:
+        ProgramCodeRules:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /hello
+            Path: /program-codes
             Method: get
 
   FunctionRole:   # execute lambda function with this role
@@ -51,17 +49,27 @@ Resources:
               - sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: LambdaAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: '*'
+                Action:
+                  - 'organizations:ListAccounts'
+                  - 'organizations:ListTagsForResource'
+                Effect: Allow
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-  HelloWorldFunctionArn:
-    Description: "Hello World Lambda Function ARN"
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionRoleArn:
-    Description: "Implicit IAM Role created for Hello World function"
+  CostCategoryRulesApi:
+    Description: "API Gateway endpoint URL for Prod stage for function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/rules/"
+  FunctionArn:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt Function.Arn
+  FunctionRoleArn:
+    Description: "Implicit IAM Role created for function"
     Value: !GetAtt FunctionRole.Arn
