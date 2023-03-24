@@ -11,10 +11,10 @@ Globals:
 Parameters:
   DnsName:
     Type: String
-    Description: Custom API host name (optional)
+    Description: Custom API host name
   AcmCertificateArn:
     Type: String
-    Description: ARN of the ACM Certificate to use (required if DnsName is set)
+    Description: ARN of the ACM Certificate to use
   ChartOfAccountsURL:
     Type: String
     Description: URL to the chart of accounts endpoint provided by `lambda-mips-api`.
