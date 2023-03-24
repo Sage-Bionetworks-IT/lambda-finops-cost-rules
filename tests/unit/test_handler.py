@@ -14,6 +14,9 @@ tag_list_string = 'TagOne,TagTwo'
 # expected parsed env var value
 expected_tag_list = [ 'TagOne', 'TagTwo' ]
 
+# regular expression for finding program codes in tags
+tag_regex = r'[0-9]{6}'
+
 # mock return for list_accounts()
 mock_account_list = {
     'Accounts': [
@@ -24,7 +27,7 @@ mock_account_list = {
 }
 
 # mock return for list_tags_for_resource()
-mock_resource_tags_a = {
+mock_resource_code_tags_a = {
     'Tags': [
         {
             'Key': 'TagOne',
@@ -34,7 +37,7 @@ mock_resource_tags_a = {
 }
 
 # mock return for list_tags_for_resource()
-mock_resource_tags_b = {
+mock_resource_code_tags_b = {
     'Tags': [
         {
             'Key': 'TagOne',
@@ -44,7 +47,7 @@ mock_resource_tags_b = {
 }
 
 # mock return for list_tags_for_resource()
-mock_resource_tags_other = {
+mock_resource_code_tags_other = {
     'Tags': [
         {
             'Key': 'TagTwo',
@@ -60,6 +63,47 @@ expected_account_codes = {
         '333444555666',
     ],
     '654321': [
+        '222333444555',
+    ],
+}
+
+# mock return for list_tags_for_resource()
+mock_resource_owner_tags_foo1 = {
+    'Tags': [
+        {
+            'Key': 'TagOne',
+            'Value': "foo@sagebase.org",
+        },
+    ]
+}
+
+# mock return for list_tags_for_resource()
+mock_resource_owner_tags_foo2 = {
+    'Tags': [
+        {
+            'Key': 'TagTwo',
+            'Value': "foo@sagebase.org",
+        },
+    ]
+}
+
+# mock return for list_tags_for_resource()
+mock_resource_owner_tags_bar = {
+    'Tags': [
+        {
+            'Key': 'TagOne',
+            'Value': "bar@sagebase.org",
+        },
+    ]
+}
+
+# expected account owner dictionary
+expected_account_owners = {
+    'foo@sagebase.org': [
+        '111222333444',
+        '333444555666',
+    ],
+    'bar@sagebase.org': [
         '222333444555',
     ],
 }
@@ -83,8 +127,8 @@ expected_chart_dict = {
     "654321": "Other Program",
 }
 
-# expected set of rules built from expected_chart_dict and expected_account_codes
-expected_rules = [
+# expected set of program rules built from expected_chart_dict and expected_account_codes
+expected_program_rules = [
     {
         "Rule": {
              "Tags": {
@@ -243,8 +287,79 @@ expected_rules = [
     },
 ]
 
-@pytest.fixture()
-def apigw_event():
+# expected set of owner rules built from expected_account_owners
+expected_owner_rules = [
+    {
+        'InheritedValue': {
+            'DimensionName': 'TAG',
+            'DimensionValue': 'TagOne'
+        },
+        'Type': 'INHERITED_VALUE'
+    },
+    {
+        'InheritedValue': {
+            'DimensionName': 'TAG',
+            'DimensionValue': 'TagTwo'
+        },
+        'Type': 'INHERITED_VALUE'
+    },
+    {
+        'Rule': {
+            'And': [
+                {
+                    'Dimensions': {
+                        'Key': 'LINKED_ACCOUNT',
+                        'MatchOptions': ['EQUALS'],
+                        'Values': ['111222333444', '333444555666']
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'TagOne',
+                        'MatchOptions': ['ABSENT']
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'TagTwo',
+                        'MatchOptions': ['ABSENT']
+                    }
+                }
+            ]
+        },
+         'Type': 'REGULAR',
+        'Value': 'foo@sagebase.org'
+    },
+    {
+        'Rule': {
+            'And': [
+                {
+                    'Dimensions': {
+                        'Key': 'LINKED_ACCOUNT',
+                        'MatchOptions': ['EQUALS'],
+                        'Values': ['222333444555']
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'TagOne',
+                        'MatchOptions': ['ABSENT']
+                    }
+                },
+                   {
+                    'Tags': {
+                        'Key': 'TagTwo',
+                        'MatchOptions': ['ABSENT']
+                    }
+                }
+            ]
+        },
+        'Type': 'REGULAR',
+        'Value': 'bar@sagebase.org'
+    },
+]
+
+def apigw_event(path):
     """ Generates API GW Event"""
 
     return {
@@ -296,8 +411,20 @@ def apigw_event():
         "pathParameters": {"proxy": "/examplepath"},
         "httpMethod": "POST",
         "stageVariables": {"baz": "qux"},
-        "path": "/examplepath",
+        "path": f"{path}",
     }
+
+@pytest.fixture()
+def program_codes_event():
+    return apigw_event('/program-codes')
+
+@pytest.fixture()
+def owner_emails_event():
+    return apigw_event('/owner-emails')
+
+@pytest.fixture()
+def bad_event():
+    return apigw_event('/invalid')
 
 
 def test_parse_env_list():
@@ -308,7 +435,7 @@ def test_parse_env_list():
     assert parsed_tag_list == expected_tag_list
 
 
-def test_account_codes():
+def test_account_tags_regex():
     '''Test getting account code mapping from account tags'''
     # stub organizations client
     org = boto3.client('organizations')
@@ -322,13 +449,36 @@ def test_account_codes():
             # we are using two codes for three accounts to ensure
             # that accounts are properly grouped under the code
             # found in their respective tags
-            _stub.add_response('list_tags_for_resource', mock_resource_tags_a)
-            _stub.add_response('list_tags_for_resource', mock_resource_tags_other)
-            _stub.add_response('list_tags_for_resource', mock_resource_tags_b)
+            _stub.add_response('list_tags_for_resource', mock_resource_code_tags_a)
+            _stub.add_response('list_tags_for_resource', mock_resource_code_tags_other)
+            _stub.add_response('list_tags_for_resource', mock_resource_code_tags_b)
 
             # assert codes were collected
-            found_account_codes = cost_rules.app.collect_account_tag_codes(expected_tag_list)
+            found_account_codes = cost_rules.app.collect_account_tags(expected_tag_list, tag_regex)
             assert found_account_codes == expected_account_codes
+
+
+def test_account_tags():
+    '''Test getting account code mapping from account tags'''
+    # stub organizations client
+    org = boto3.client('organizations')
+    cost_rules.app.org_client = org
+    with Stubber(org) as _stub:
+            # inject mock account response
+            _stub.add_response('list_accounts', mock_account_list)
+
+            # inject a mock tags response for each mock account
+
+            # we are using two codes for three accounts to ensure
+            # that accounts are properly grouped under the code
+            # found in their respective tags
+            _stub.add_response('list_tags_for_resource', mock_resource_owner_tags_foo1)
+            _stub.add_response('list_tags_for_resource', mock_resource_owner_tags_bar)
+            _stub.add_response('list_tags_for_resource', mock_resource_owner_tags_foo2)
+
+            # assert codes were collected
+            found_account_codes = cost_rules.app.collect_account_tags(expected_tag_list)
+            assert found_account_codes == expected_account_owners
 
 
 def test_collect_chart(requests_mock):
@@ -352,15 +502,25 @@ def test_collect_chart_err(requests_mock):
 def test_build_program_rules():
     '''Test building rule list from tag list and account tags'''
 
-    found_rules = cost_rules.app.build_program_rules(
+    found_rules = cost_rules.app._build_program_rules(
             expected_chart_dict,
             expected_tag_list,
             expected_account_codes)
 
-    assert found_rules == expected_rules
+    assert found_rules == expected_program_rules
 
 
-def test_lambda_handler(apigw_event, mocker):
+def test_build_owner_rules():
+    '''Test building rule list from tag list and account tags'''
+
+    found_rules = cost_rules.app._build_owner_rules(
+            expected_tag_list,
+            expected_account_owners)
+
+    assert found_rules == expected_owner_rules
+
+
+def test_list_program_rules(mocker):
     # mock environment variables
     env_vars = {
         'ChartOfAccountsURL': chart_url,
@@ -369,7 +529,7 @@ def test_lambda_handler(apigw_event, mocker):
     mocker.patch.dict(os.environ, env_vars)
 
     # mock out collect_account_tag_codes() with mock account tags
-    mocker.patch('cost_rules.app.collect_account_tag_codes',
+    mocker.patch('cost_rules.app.collect_account_tags',
                  autospec=True,
                  return_value=expected_account_codes)
 
@@ -379,32 +539,66 @@ def test_lambda_handler(apigw_event, mocker):
                  return_value=expected_chart_dict)
 
     # mock out build_rules() with mock rules
-    mocker.patch('cost_rules.app.build_program_rules',
+    mocker.patch('cost_rules.app._build_program_rules',
                  autospec=True,
-                 return_value=expected_rules)
-
-    # test event
-    ret = cost_rules.app.lambda_handler(apigw_event, None)
-
-    assert ret["body"] == json.dumps(expected_rules)
-    assert ret['statusCode'] == 200
+                 return_value=expected_program_rules)
 
 
-def test_lambda_handler_err_tags(apigw_event, mocker):
+def test_list_owner_rules(mocker):
     # mock environment variables
     env_vars = {
-        'ChartOfAccountsURL': chart_url,
-        'ProgramCodeTagList': tag_list_string,
+        'OwnerEmailTagList': tag_list_string,
     }
     mocker.patch.dict(os.environ, env_vars)
 
     # mock out collect_account_tag_codes() with mock account tags
-    mocker.patch('cost_rules.app.collect_account_tag_codes',
+    mocker.patch('cost_rules.app.collect_account_tags',
                  autospec=True,
-                 side_effect=Exception("Mock Exception"))
+                 return_value=expected_account_owners)
+
+    # mock out build_rules() with mock rules
+    mocker.patch('cost_rules.app._build_owner_rules',
+                 autospec=True,
+                 return_value=expected_owner_rules)
+
+
+def test_lambda_handler_program_codes(program_codes_event, mocker):
+    # mock out build_rules() with mock rules
+    mocker.patch('cost_rules.app.list_program_rules',
+                 autospec=True,
+                 return_value=expected_program_rules)
 
     # test event
-    ret = cost_rules.app.lambda_handler(apigw_event, None)
+    ret = cost_rules.app.lambda_handler(program_codes_event, None)
 
-    assert ret["body"] == "Mock Exception"
+    assert ret["body"] == json.dumps(expected_program_rules)
+    assert ret['statusCode'] == 200
+
+
+def test_lambda_handler_owner_emails(owner_emails_event, mocker):
+    # mock out build_rules() with mock rules
+    mocker.patch('cost_rules.app.list_owner_rules',
+                 autospec=True,
+                 return_value=expected_owner_rules)
+
+    # test event
+    ret = cost_rules.app.lambda_handler(owner_emails_event, None)
+
+    assert ret["body"] == json.dumps(expected_owner_rules)
+    assert ret['statusCode'] == 200
+
+
+def test_lambda_handler_bad_path(bad_event):
+    # test event
+    ret = cost_rules.app.lambda_handler(bad_event, None)
+
+    assert ret["body"] == "unknown path: /invalid"
+    assert ret['statusCode'] == 500
+
+
+def test_lambda_handler_empty_event():
+    # test event
+    ret = cost_rules.app.lambda_handler({}, None)
+
+    assert ret["body"] == "invalid event: {}"
     assert ret['statusCode'] == 500

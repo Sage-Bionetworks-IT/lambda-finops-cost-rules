@@ -24,14 +24,34 @@ template parameter.
 Cost-category rules are created to assign line item costs to a category based on
 tags for the line item resource or its containing account.
 
-First, this lambda will create cost-category rules that check a list of tags
-(provided as a template parameter) for every combination of program code and
-tag name, also create rules for each account with an appropriate tag, and
-finally create rules to inherit the value from a listed tag if no other rule
-matches.
+Two types of rules can be generated: rules for a Program Code category, or rules
+for an Owner Email category. The former assumes the tag contains a significant
+numeric code and requires additional external state, while the latter assumes that
+the entire tag value is a significant string.
 
 The order of the rules matters because processing will stop at the first match.
 For more information on rule processing, see the [AWS User Guide](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html).
+
+#### Program Code Category
+
+The rules generated for a Program Code category are dependent on the output of
+`lambda-mips-api` for a list of current codes, as well as the current account tags.
+
+First, this lambda will create cost-category rules that check a list of tags
+(provided as a template parameter) for every combination of program code and
+tag name, then also create rules for each account with an appropriate tag, and
+finally create rules to inherit the value from a listed tag if no other rule
+matches.
+
+#### Owner Email Category
+
+Rules for an Owner Email category can also be generated from existing account
+tags.
+
+In this case, we treat the tag value an authoritative (no code deduplication),
+and so we start with inheriting tag values from tags on individual resources.
+We then fall back to rules built from account tag values for any accounts
+tagged with a listed tag.
 
 ### Components
 ![Component Diagram](docs/component.diagram.png)
@@ -48,6 +68,7 @@ The following template parameters are passed through as environment variables
 | --- | --- | --- | --- |
 | ChartOfAccountsURL | ChartOfAccountsURL | URL to the chart of accounts endpoint provided by `lambda-mips-api` | https://lambda-mips-api.execute-api.amazonaws.com/accounts |
 | ProgramCodeTagList | ProgramCodeTagList | Comma-separated list of tag names that may contain program-code assignment | CostCenter,CostCenterOther |
+| OwnerEmailTagList | OwnerEmailTagList | Comma-separated list of tag names that may contain an owner email address | OwnerEmail,synapseEmail |
 
 ### Triggering
 The CloudFormation template will output the available endpoint URL for triggering the lambda, e.g.:
@@ -56,7 +77,8 @@ The CloudFormation template will output the available endpoint URL for triggerin
 These URLs can be also constructed by appending the API Gateway paths to the CloudFormation domain.
 
 ### Response
-This lambda will produce the example output when provided with the example external state and default parameters:
+This lambda will produce a JSON string representing cost category rules based on external state (current AWS account tags and output from another lambda).
+Example state and its expected output are listed below.
 
 #### Example External State
 The lambda queries two remote sources for their current state: the current chart of accounts from `lambda-mips-api` and current account tags from AWS Organizations.
@@ -79,7 +101,7 @@ Example existing AWS account tags:
 | 333344445555 | `Other Program / 654321` |
 
 
-#### Example Output
+#### Example Program Code Output
 A JSON string to be passed to a Rules property of an AWS::CE::CostCategory resource:
 ```json
 [

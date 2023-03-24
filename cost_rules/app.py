@@ -43,12 +43,12 @@ def _strip_special_chars(value):
     return re.sub('[^a-zA-Z0-9 -]', '_', value)
 
 
-def collect_account_tag_codes(tag_names):
+def collect_account_tags(tag_names, regex=None):
     '''
-    Query account tags for fallback values if the resource is untagged.
+    Query account tags for fallback program codes if the resource is untagged.
     '''
 
-    account_codes = {}
+    account_tags = {}
 
     # create boto client
     global org_client
@@ -70,19 +70,22 @@ def collect_account_tag_codes(tag_names):
             for tag_page in tag_pages:
                 for tag in tag_page['Tags']:
                     if tag['Key'] in tag_names:
-                        # get a 6-digit numeric code from the tag
-                        found = re.search(r'[0-9]{6}', tag['Value'])
+                        if regex is not None:
+                            # match a regex against the tag
+                            found = re.search(regex, tag['Value'])
 
-                        if found is None:
-                            LOG.warning(f"No numeric code found in tag: {tag['Value']}")
-                            continue
+                            if found is None:
+                                LOG.warning(f'Tag value "{tag["Value"]}" does not match regex "{regex}"')
+                                continue
 
-                        code = found.group(0)
-
-                        if code in account_codes:
-                            account_codes[code].append(account_id)
+                            value = found.group(0)
                         else:
-                            account_codes[code] = [ account_id, ]
+                            value = tag['Value']
+
+                        if value in account_tags:
+                            account_tags[value].append(account_id)
+                        else:
+                            account_tags[value] = [ account_id, ]
 
                         # stop processing tags for this page
                         break
@@ -91,7 +94,8 @@ def collect_account_tag_codes(tag_names):
                     # stop processing tag pages for this account
                     break
 
-    return account_codes
+    return account_tags
+
 
 def collect_chart_of_accounts(chart_url):
     '''
@@ -108,6 +112,7 @@ def collect_chart_of_accounts(chart_url):
 
     # return unpacked json data
     return chart_json.json()
+
 
 def _build_tag_rules(rule_name, tag_names, code):
     results = [
@@ -184,7 +189,7 @@ def _build_inherit_rules(tag_names):
     return results
 
 
-def build_program_rules(chart_codes, tag_names, account_codes):
+def _build_program_rules(chart_codes, tag_names, account_codes):
     '''
     Build a list of cost-category rules.
     Rule order matters, first rule matched wins.
@@ -228,6 +233,62 @@ def build_program_rules(chart_codes, tag_names, account_codes):
     return rules
 
 
+def list_program_rules():
+    # get environment variables
+    chart_url = _get_os_var('ChartOfAccountsURL')
+
+    _tag_list = _get_os_var('ProgramCodeTagList')
+    tag_list = _parse_env_list(_tag_list)
+
+    # get account tags
+    account_codes = collect_account_tags(tag_list, r'[0-9]{6}')
+
+    # get chart of accounts
+    chart_data = collect_chart_of_accounts(chart_url)
+
+    # generate rules
+    rules_data = _build_program_rules(chart_data, tag_list, account_codes)
+
+    return rules_data
+
+
+def _build_owner_rules(tag_names, account_owners):
+    '''
+    Build a list of cost-category rules.
+
+    First, inherit any tag values in their listed order.
+    Then fall back to any account tags for untagged resources.
+    '''
+
+    rules = []
+
+    # Inherit tag values
+    rules.extend(_build_inherit_rules(tag_names))
+
+    # Fall back on account tag values
+    for owner in account_owners:
+        rules.append(_build_account_rule(
+            owner,
+            tag_names,
+            account_owners[owner]
+        ))
+
+    return rules
+
+def list_owner_rules():
+    # get environment variables
+    _tag_list = _get_os_var('OwnerEmailTagList')
+    tag_list = _parse_env_list(_tag_list)
+
+    # get account tags
+    account_owners = collect_account_tags(tag_list)
+
+    # generate rules
+    rules_data = _build_owner_rules(tag_list, account_owners)
+
+    return rules_data
+
+
 def lambda_handler(event, context):
     """Sample pure Lambda function
 
@@ -252,22 +313,20 @@ def lambda_handler(event, context):
 
     result = { "statusCode": 200 }
     try:
-        # get environment variables
-        chart_url = _get_os_var('ChartOfAccountsURL')
+        if 'path' in event:
+            event_path = event['path']
 
-        _tag_list = _get_os_var('ProgramCodeTagList')
-        tag_list = _parse_env_list(_tag_list)
+            if event_path == '/program-codes':
+                rules_data = list_program_rules()
 
-        # get account tags
-        account_codes = collect_account_tag_codes(tag_list)
+            elif event_path == '/owner-emails':
+                rules_data = list_owner_rules()
 
-        # get chart of accounts
-        chart_data = collect_chart_of_accounts(chart_url)
+            else:
+                raise Exception(f"unknown path: {event_path}")
+        else:
+            raise Exception(f"invalid event: {event}")
 
-        # generate rules
-        rules_data = build_program_rules(chart_data, tag_list, account_codes)
-
-        # return as json string
         result["body"] = json.dumps(rules_data)
         result["headers"] = { "content-type": "application/json; charset=utf-8" }
 

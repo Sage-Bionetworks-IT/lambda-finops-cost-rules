@@ -21,6 +21,9 @@ Parameters:
   ProgramCodeTagList:
     Description: Comma-separated list of tag names that may contain program-code assignment
     Type: String
+  OwnerEmailTagList:
+    Description: Comma-separated list of tag names that may contain owner email addresses
+    Type: String
 
 Resources:
   RestApi:
@@ -45,11 +48,18 @@ Resources:
         Variables:
           ChartOfAccountsURL: !Ref ChartOfAccountsURL
           ProgramCodeTagList: !Ref ProgramCodeTagList
+          OwnerEmailTagList: !Ref OwnerEmailTagList
       Events:
         ProgramCodeRules:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /program-codes
+            Method: get
+            RestApiId: !Ref RestApi
+        OwnerEmailRules:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /owner-emails
             Method: get
             RestApiId: !Ref RestApi
 
