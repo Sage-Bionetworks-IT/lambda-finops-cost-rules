@@ -93,8 +93,11 @@ Outputs:
     Description: "API Gateway endpoint URL for Prod stage for function"
     Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   ProgramCodeRulesEndpoint:
-    Description: "Custom endpoint URL for Prod stage for function"
-    Value: !Sub "https://${DnsName}/program-codes/"
+    Description: "Endpoint for listing Program Code rules"
+    Value: !Sub "https://${DnsName}/program-codes"
+  OwnerEmailRulesEndpoint:
+    Description: "Endpoint for listing Owner Email rules"
+    Value: !Sub "https://${DnsName}/owner-emails"
   FunctionArn:
     Description: "Lambda Function ARN"
     Value: !GetAtt Function.Arn

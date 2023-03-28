@@ -48,7 +48,7 @@ matches.
 Rules for an Owner Email category can also be generated from existing account
 tags.
 
-In this case, we treat the tag value an authoritative (no code deduplication),
+In this case, we treat the tag value as authoritative (no code deduplication),
 and so we start with inheriting tag values from tags on individual resources.
 We then fall back to rules built from account tag values for any accounts
 tagged with a listed tag.
@@ -77,11 +77,12 @@ The CloudFormation template will output the available endpoint URL for triggerin
 These URLs can be also constructed by appending the API Gateway paths to the CloudFormation domain.
 
 ### Response
-This lambda will produce a JSON string representing cost category rules based on external state (current AWS account tags and output from another lambda).
-Example state and its expected output are listed below.
+This lambda will produce a JSON string to be passed to a Rules property of an AWS::CE::CostCategory
+resource based on external state (current AWS account tags and output from another lambda).
+Example state and its expected output are listed below for each endpoint.
 
-#### Example External State
-The lambda queries two remote sources for their current state: the current chart of accounts from `lambda-mips-api` and current account tags from AWS Organizations.
+#### Example Program Code External State
+The program-codes endpoint queries two remote sources for their current state: the current chart of accounts from `lambda-mips-api` and current account tags from AWS Organizations.
 
 Example chart of accounts returned by `lambda-mips-api` at `ChartOfAccountsURL`:
 ```json
@@ -102,7 +103,8 @@ Example existing AWS account tags:
 
 
 #### Example Program Code Output
-A JSON string to be passed to a Rules property of an AWS::CE::CostCategory resource:
+The program-codes endpoint will produce the following rules from the above state:
+
 ```json
 [
     {
@@ -184,6 +186,95 @@ A JSON string to be passed to a Rules property of an AWS::CE::CostCategory resou
             "DimensionName": "TAG",
             "DimensionKey": "CostCenter"
         }
+    }
+]
+```
+
+This string can be passed to the [`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
+
+#### Example Owner Email External State
+The owner-emails endpoint queries current account tags from AWS Organizations.
+
+Example existing AWS account tags:
+| Account ID | Tag value from a tag listed in `TagList` |
+| --- | --- |
+| 111122223333 | `foo@sagebase.org` |
+| 222233334444 | `foo@sagebase.org` |
+| 333344445555 | `bar@sagebase.org` |
+
+
+#### Example Owner Email Output
+The owner-emails endpoint will produce the following rules from the above state:
+
+```json
+[
+    {
+        'InheritedValue': {
+            'DimensionName': 'TAG',
+            'DimensionValue': 'TagOne'
+        },
+        'Type': 'INHERITED_VALUE'
+    },
+    {
+        'InheritedValue': {
+            'DimensionName': 'TAG',
+            'DimensionValue': 'TagTwo'
+        },
+        'Type': 'INHERITED_VALUE'
+    },
+    {
+        'Rule': {
+            'And': [
+                {
+                    'Dimensions': {
+                        'Key': 'LINKED_ACCOUNT',
+                        'MatchOptions': ['EQUALS'],
+                        'Values': ['111222333444', '333444555666']
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'TagOne',
+                        'MatchOptions': ['ABSENT']
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'TagTwo',
+                        'MatchOptions': ['ABSENT']
+                    }
+                }
+            ]
+        },
+         'Type': 'REGULAR',
+        'Value': 'foo@sagebase.org'
+    },
+    {
+        'Rule': {
+            'And': [
+                {
+                    'Dimensions': {
+                        'Key': 'LINKED_ACCOUNT',
+                        'MatchOptions': ['EQUALS'],
+                        'Values': ['222333444555']
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'TagOne',
+                        'MatchOptions': ['ABSENT']
+                    }
+                },
+                   {
+                    'Tags': {
+                        'Key': 'TagTwo',
+                        'MatchOptions': ['ABSENT']
+                    }
+                }
+            ]
+        },
+        'Type': 'REGULAR',
+        'Value': 'bar@sagebase.org'
     }
 ]
 ```
