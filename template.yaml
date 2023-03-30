@@ -41,14 +41,13 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: .
-      Handler: cost_rules/app.lambda_handler
+      Handler: cost_rules/program_codes.lambda_handler
       Runtime: python3.9
       Role: !GetAtt FunctionRole.Arn
       Environment:
         Variables:
           ChartOfAccountsURL: !Ref ChartOfAccountsURL
           ProgramCodeTagList: !Ref ProgramCodeTagList
-          OwnerEmailTagList: !Ref OwnerEmailTagList
       Events:
         ProgramCodeRules:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -56,6 +55,17 @@ Resources:
             Path: /program-codes
             Method: get
             RestApiId: !Ref RestApi
+  OwnerEmailFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: .
+      Handler: cost_rules/owner_emails.lambda_handler
+      Runtime: python3.9
+      Role: !GetAtt FunctionRole.Arn
+      Environment:
+        Variables:
+          OwnerEmailTagList: !Ref OwnerEmailTagList
+      Events:
         OwnerEmailRules:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
