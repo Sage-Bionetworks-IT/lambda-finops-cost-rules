@@ -37,6 +37,12 @@ For more information on rule processing, see the [AWS User Guide](https://docs.a
 ![Component Diagram](docs/component.diagram.png)
 
 ### Template Parameters
+The following template parameters are used to configure Cloudformation resources
+| Template Parameter | Description | Example Value |
+| --- | --- | --- |
+| DnsName | Custom host name to use for API Gateway | cost-rules.example.com |
+| AcmCertificateArn | AWS ARN of an ACM certificate valid for `DnsName` | arn:aws:acm:us-east-1:&lt;ACCOUNT ID>:certificate/&lt;CERTIFICATE UUID> |
+
 The following template parameters are passed through as environment variables
 | Template Parameter | Environment Variable | Description | Example Value |
 | --- | --- | --- | --- |
@@ -336,6 +342,8 @@ stack_tags:
 parameters:
   TagList: "CostCenter,CostCenterOther"
   ChartOfAccountsURL: "https://lambda-mips-api.execute-api.amazonaws.com/accounts"
+  DnsNames: "cost-rules.example.com"
+  AcmCertificateArn: "arn:aws:acm:us-east-1:<ACCOUNT_ID>:certificate/<UUID>"
 ```
 
 Install the lambda using sceptre:

@@ -9,6 +9,12 @@ Globals:
     Timeout: 30
 
 Parameters:
+  DnsName:
+    Type: String
+    Description: Custom API host name
+  AcmCertificateArn:
+    Type: String
+    Description: ARN of the ACM Certificate to use
   ChartOfAccountsURL:
     Type: String
     Description: URL to the chart of accounts endpoint provided by `lambda-mips-api`.
@@ -17,6 +23,17 @@ Parameters:
     Type: String
 
 Resources:
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      EndpointConfiguration:
+        Type: EDGE
+      Domain:
+        DomainName: !Ref DnsName
+        CertificateArn: !Ref AcmCertificateArn
+        EndpointConfiguration: EDGE
+
   Function:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -34,6 +51,7 @@ Resources:
           Properties:
             Path: /program-codes
             Method: get
+            RestApiId: !Ref RestApi
 
   FunctionRole:   # execute lambda function with this role
     Type: AWS::IAM::Role
@@ -61,12 +79,12 @@ Resources:
                 Effect: Allow
 
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  ProgramCodeRulesApi:
+  ApiOrigin:
     Description: "API Gateway endpoint URL for Prod stage for function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/program-codes/"
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  ProgramCodeRulesEndpoint:
+    Description: "Custom endpoint URL for Prod stage for function"
+    Value: !Sub "https://${DnsName}/program-codes/"
   FunctionArn:
     Description: "Lambda Function ARN"
     Value: !GetAtt Function.Arn
