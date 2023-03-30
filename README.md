@@ -342,6 +342,8 @@ stack_tags:
 parameters:
   TagList: "CostCenter,CostCenterOther"
   ChartOfAccountsURL: "https://lambda-mips-api.execute-api.amazonaws.com/accounts"
+  DnsNames: "cost-rules.example.com"
+  AcmCertificateArn: "arn:aws:acm:us-east-1:<ACCOUNT_ID>:certificate/<UUID>"
 ```
 
 Install the lambda using sceptre:
