@@ -209,72 +209,72 @@ The owner-emails endpoint will produce the following rules from the above state:
 ```json
 [
     {
-        'InheritedValue': {
-            'DimensionName': 'TAG',
-            'DimensionValue': 'TagOne'
+        "InheritedValue": {
+            "DimensionName": "TAG",
+            "DimensionValue": "TagOne"
         },
-        'Type': 'INHERITED_VALUE'
+        "Type": "INHERITED_VALUE"
     },
     {
-        'InheritedValue': {
-            'DimensionName': 'TAG',
-            'DimensionValue': 'TagTwo'
+        "InheritedValue": {
+            "DimensionName": "TAG",
+            "DimensionValue": "TagTwo"
         },
-        'Type': 'INHERITED_VALUE'
+        "Type": "INHERITED_VALUE"
     },
     {
-        'Rule': {
-            'And': [
+        "Rule": {
+            "And": [
                 {
-                    'Dimensions': {
-                        'Key': 'LINKED_ACCOUNT',
-                        'MatchOptions': ['EQUALS'],
-                        'Values': ['111222333444', '333444555666']
+                    "Dimensions": {
+                        "Key": "LINKED_ACCOUNT",
+                        "MatchOptions": ["EQUALS"],
+                        "Values": ["111222333444", "333444555666"]
                     }
                 },
                 {
-                    'Tags': {
-                        'Key': 'TagOne',
-                        'MatchOptions': ['ABSENT']
+                    "Tags": {
+                        "Key": "TagOne",
+                        "MatchOptions": ["ABSENT"]
                     }
                 },
                 {
-                    'Tags': {
-                        'Key': 'TagTwo',
-                        'MatchOptions': ['ABSENT']
+                    "Tags": {
+                        "Key": "TagTwo",
+                        "MatchOptions": ["ABSENT"]
                     }
                 }
             ]
         },
-         'Type': 'REGULAR',
-        'Value': 'foo@sagebase.org'
+         "Type": "REGULAR",
+        "Value": "foo@sagebase.org"
     },
     {
-        'Rule': {
-            'And': [
+        "Rule": {
+            "And": [
                 {
-                    'Dimensions': {
-                        'Key': 'LINKED_ACCOUNT',
-                        'MatchOptions': ['EQUALS'],
-                        'Values': ['222333444555']
+                    "Dimensions": {
+                        "Key": "LINKED_ACCOUNT",
+                        "MatchOptions": ["EQUALS"],
+                        "Values": ["222333444555"]
                     }
                 },
                 {
-                    'Tags': {
-                        'Key': 'TagOne',
-                        'MatchOptions': ['ABSENT']
+                    "Tags": {
+                        "Key": "TagOne",
+                        "MatchOptions": ["ABSENT"]
                     }
                 },
                    {
-                    'Tags': {
-                        'Key': 'TagTwo',
-                        'MatchOptions': ['ABSENT']
+                    "Tags": {
+                        "Key": "TagTwo",
+                        "MatchOptions": ["ABSENT"]
                     }
                 }
             ]
         },
-        'Type': 'REGULAR',
-        'Value': 'bar@sagebase.org'
+        "Type": "REGULAR",
+        "Value": "bar@sagebase.org"
     }
 ]
 ```
