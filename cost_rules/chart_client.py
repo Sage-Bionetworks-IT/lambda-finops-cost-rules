@@ -9,7 +9,7 @@ def collect_chart_of_accounts(chart_url):
 
     # check for valid url
     if not validators.url(chart_url):
-        raise Exception(f'Invalid URL: {check_url}')
+        raise Exception(f'Invalid URL: {chart_url}')
 
     # get chart of accounts
     chart_json = requests.get(chart_url)

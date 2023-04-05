@@ -453,9 +453,10 @@ stack_name: "lambda-finops-cost-rules"
 stack_tags:
   OwnerEmail: "it@sagebase.org"
 parameters:
-  TagList: "CostCenter,CostCenterOther"
+  ProgramCodeTagList: "CostCenter,CostCenterOther"
+  OwnerEmailTagList: "OwnerEmail,Owner,Email"
   ChartOfAccountsURL: "https://lambda-mips-api.execute-api.amazonaws.com/accounts"
-  DnsNames: "cost-rules.example.com"
+  DnsName: "cost-rules.example.com"
   AcmCertificateArn: "arn:aws:acm:us-east-1:<ACCOUNT_ID>:certificate/<UUID>"
 ```
 
