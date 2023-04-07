@@ -21,6 +21,9 @@ Parameters:
   ProgramCodeTagList:
     Description: Comma-separated list of tag names that may contain program-code assignment
     Type: String
+  OwnerEmailTagList:
+    Description: Comma-separated list of tag names that may contain owner email addresses
+    Type: String
 
 Resources:
   RestApi:
@@ -38,7 +41,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: .
-      Handler: cost_rules/app.lambda_handler
+      Handler: cost_rules/program_codes.lambda_handler
       Runtime: python3.9
       Role: !GetAtt FunctionRole.Arn
       Environment:
@@ -50,6 +53,23 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /program-codes
+            Method: get
+            RestApiId: !Ref RestApi
+  OwnerEmailFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: .
+      Handler: cost_rules/owner_emails.lambda_handler
+      Runtime: python3.9
+      Role: !GetAtt FunctionRole.Arn
+      Environment:
+        Variables:
+          OwnerEmailTagList: !Ref OwnerEmailTagList
+      Events:
+        OwnerEmailRules:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /owner-emails
             Method: get
             RestApiId: !Ref RestApi
 
@@ -83,8 +103,11 @@ Outputs:
     Description: "API Gateway endpoint URL for Prod stage for function"
     Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   ProgramCodeRulesEndpoint:
-    Description: "Custom endpoint URL for Prod stage for function"
-    Value: !Sub "https://${DnsName}/program-codes/"
+    Description: "Endpoint for listing Program Code rules"
+    Value: !Sub "https://${DnsName}/program-codes"
+  OwnerEmailRulesEndpoint:
+    Description: "Endpoint for listing Owner Email rules"
+    Value: !Sub "https://${DnsName}/owner-emails"
   FunctionArn:
     Description: "Lambda Function ARN"
     Value: !GetAtt Function.Arn
