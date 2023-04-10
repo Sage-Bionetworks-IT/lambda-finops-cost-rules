@@ -99,6 +99,11 @@ Resources:
                 Effect: Allow
 
 Outputs:
+  ApiDomain:
+    Description: "API Gateway endpoint URL for Prod stage for function"
+    Value: !Sub "${RestApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Export:
+      Name: !Sub '${AWS::Region}-${AWS::StackName}-ApiDomain'
   ApiOrigin:
     Description: "API Gateway endpoint URL for Prod stage for function"
     Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
