@@ -1,6 +1,8 @@
 import logging
 import re
 
+import boto3
+
 
 LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.INFO)
