@@ -20,6 +20,7 @@ def _build_program_rules(chart_codes, tag_names, account_codes):
 
     '''
     rules = []
+    account_rules = []
 
     # first, generate rules for each program code
     for code, name in chart_codes.items():
@@ -39,12 +40,15 @@ def _build_program_rules(chart_codes, tag_names, account_codes):
 
         if code in account_codes:
             # if any accounts are tagged with this code,
-            # add a rule for them here
-            rules.append(builder.build_account_rule(
+            # add an account rule for them here
+            account_rules.append(builder.build_account_rule(
                 title,
                 tag_names,
                 account_codes[code]
             ))
+
+    # ensure that account rules come after resource rules
+    rules.extend(account_rules)
 
     # finally, inherit tag values if no other rule matched
     rules.extend(builder.build_inherit_rules(tag_names))

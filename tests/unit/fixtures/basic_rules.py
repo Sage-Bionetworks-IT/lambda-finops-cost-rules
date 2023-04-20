@@ -9,27 +9,11 @@ mock_account_ids = [
 
 expected_account_rule = {
     'Rule': {
-        'And': [
-            {
-                'Dimensions': {
-                    'Key': 'LINKED_ACCOUNT',
-                    'MatchOptions': ['EQUALS'],
-                    'Values': ['111222333444', '222333444555']
-                }
-            },
-            {
-                'Tags': {
-                    'Key': 'TagOne',
-                    'MatchOptions': ['ABSENT']
-                }
-            },
-            {
-                'Tags': {
-                    'Key': 'TagTwo',
-                    'MatchOptions': ['ABSENT']
-                }
-            }
-        ]
+        'Dimensions': {
+            'Key': 'LINKED_ACCOUNT',
+            'MatchOptions': ['EQUALS'],
+            'Values': ['111222333444', '222333444555']
+        }
     },
     'Type': 'REGULAR',
     'Value': 'Category Name',

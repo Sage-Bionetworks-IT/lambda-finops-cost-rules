@@ -67,33 +67,6 @@ expected_program_rules = [
         "Value": "123456 Program Part A",
     },
     {
-        'Rule': {
-            'And': [
-                {
-                    'Dimensions': {
-                        'Key': 'LINKED_ACCOUNT',
-                        'MatchOptions': ['EQUALS'],
-                        'Values': ['111222333444', '333444555666']
-                    }
-                },
-                {
-                    'Tags': {
-                        'Key': 'TagOne',
-                        'MatchOptions': ['ABSENT']
-                    }
-                },
-                {
-                    'Tags': {
-                        'Key': 'TagTwo',
-                        'MatchOptions': ['ABSENT']
-                    }
-                }
-            ]
-        },
-        'Type': 'REGULAR',
-        'Value': '123456 Program Part A'
-    },
-    {
         "Rule": {
              "Tags": {
                  "Key": "TagOne",
@@ -117,27 +90,22 @@ expected_program_rules = [
     },
     {
         'Rule': {
-            'And': [
-                {
-                    'Dimensions': {
-                        'Key': 'LINKED_ACCOUNT',
-                        'MatchOptions': ['EQUALS'],
-                        'Values': ['222333444555', ]
-                    }
-                },
-                {
-                    'Tags': {
-                        'Key': 'TagOne',
-                        'MatchOptions': ['ABSENT']
-                    }
-                },
-                {
-                    'Tags': {
-                        'Key': 'TagTwo',
-                        'MatchOptions': ['ABSENT']
-                    }
-                }
-            ]
+            'Dimensions': {
+                'Key': 'LINKED_ACCOUNT',
+                'MatchOptions': ['EQUALS'],
+                'Values': ['111222333444', '333444555666']
+            }
+        },
+        'Type': 'REGULAR',
+        'Value': '123456 Program Part A'
+    },
+    {
+        'Rule': {
+            'Dimensions': {
+                'Key': 'LINKED_ACCOUNT',
+                'MatchOptions': ['EQUALS'],
+                'Values': ['222333444555', ]
+            }
         },
         'Type': 'REGULAR',
         "Value": "654321 Other Program",
