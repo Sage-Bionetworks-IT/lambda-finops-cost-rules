@@ -24,7 +24,7 @@ expected_tag_rules = [
         'Rule': {
             'Tags': {
                 'Key': 'TagOne',
-                'MatchOptions': ['STARTS_WITH', 'ENDS_WITH'],
+                'MatchOptions': ['ENDS_WITH'],
                 'Values': ['Value']
             }
         },
@@ -35,7 +35,7 @@ expected_tag_rules = [
         'Rule': {
             'Tags': {
                 'Key': 'TagTwo',
-                'MatchOptions': ['STARTS_WITH', 'ENDS_WITH'],
+                'MatchOptions': ['ENDS_WITH'],
                 'Values': ['Value']
             }
         },

@@ -7,7 +7,7 @@ def build_tag_rules(rule_name, tag_names, code):
                 'Tags': {
                     'Key': tag,
                     'Values': [ code, ],
-                    'MatchOptions': [ 'STARTS_WITH', 'ENDS_WITH', ],
+                    'MatchOptions': [ 'ENDS_WITH', ],
                 }
             }
         }

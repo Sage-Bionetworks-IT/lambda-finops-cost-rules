@@ -4,7 +4,7 @@ expected_program_rules = [
         "Rule": {
              "Tags": {
                  "Key": "TagOne",
-                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "MatchOptions": [ "ENDS_WITH" ],
                  "Values": [ "000000" ],
              }
         },
@@ -15,7 +15,7 @@ expected_program_rules = [
         "Rule": {
              "Tags": {
                  "Key": "TagTwo",
-                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "MatchOptions": [ "ENDS_WITH" ],
                  "Values": [ "000000" ],
              }
         },
@@ -26,7 +26,7 @@ expected_program_rules = [
         "Rule": {
              "Tags": {
                  "Key": "TagOne",
-                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "MatchOptions": [ "ENDS_WITH" ],
                  "Values": [ "000001" ],
              }
         },
@@ -37,7 +37,7 @@ expected_program_rules = [
         "Rule": {
              "Tags": {
                  "Key": "TagTwo",
-                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "MatchOptions": [ "ENDS_WITH" ],
                  "Values": [ "000001" ],
              }
         },
@@ -48,7 +48,7 @@ expected_program_rules = [
         "Rule": {
              "Tags": {
                  "Key": "TagOne",
-                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "MatchOptions": [ "ENDS_WITH" ],
                  "Values": [ "123456" ],
              }
         },
@@ -59,7 +59,7 @@ expected_program_rules = [
         "Rule": {
              "Tags": {
                  "Key": "TagTwo",
-                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "MatchOptions": [ "ENDS_WITH" ],
                  "Values": [ "123456" ],
              }
         },
@@ -70,7 +70,7 @@ expected_program_rules = [
         "Rule": {
              "Tags": {
                  "Key": "TagOne",
-                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "MatchOptions": [ "ENDS_WITH" ],
                  "Values": [ "654321" ],
              }
         },
@@ -81,7 +81,7 @@ expected_program_rules = [
         "Rule": {
              "Tags": {
                  "Key": "TagTwo",
-                 "MatchOptions": [ "STARTS_WITH", "ENDS_WITH" ],
+                 "MatchOptions": [ "ENDS_WITH" ],
                  "Values": [ "654321" ],
              }
         },
