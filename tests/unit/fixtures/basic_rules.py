@@ -48,14 +48,14 @@ expected_inherit_rules = [
     {
         'InheritedValue': {
             'DimensionName': 'TAG',
-            'DimensionValue': 'TagOne'
+            'DimensionKey': 'TagOne'
         },
         'Type': 'INHERITED_VALUE'
     },
     {
         'InheritedValue': {
             'DimensionName': 'TAG',
-            'DimensionValue': 'TagTwo'
+            'DimensionKey': 'TagTwo'
         },
         'Type': 'INHERITED_VALUE'
     },

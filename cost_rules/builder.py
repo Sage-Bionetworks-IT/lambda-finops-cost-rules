@@ -48,7 +48,7 @@ def build_inherit_rules(tag_names):
             'Type': 'INHERITED_VALUE',
             'InheritedValue': {
                 'DimensionName': 'TAG',
-                'DimensionValue': tag,
+                'DimensionKey': tag,
             }
         }
         for tag in tag_names

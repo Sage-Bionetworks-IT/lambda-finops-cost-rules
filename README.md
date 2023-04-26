@@ -211,14 +211,14 @@ The owner-emails endpoint will produce the following rules from the above state:
     {
         "InheritedValue": {
             "DimensionName": "TAG",
-            "DimensionValue": "TagOne"
+            "DimensionKey": "TagOne"
         },
         "Type": "INHERITED_VALUE"
     },
     {
         "InheritedValue": {
             "DimensionName": "TAG",
-            "DimensionValue": "TagTwo"
+            "DimensionKey": "TagTwo"
         },
         "Type": "INHERITED_VALUE"
     },
