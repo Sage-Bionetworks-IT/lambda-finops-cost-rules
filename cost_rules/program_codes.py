@@ -24,7 +24,7 @@ def _build_program_rules(chart_codes, tag_names, account_codes):
 
     # first, generate rules for each program code
     for code, name in chart_codes.items():
-        safe_name = util.strip_special_chars(name)
+        safe_name = util.safe_category_name(name)
 
         if safe_name != name:
             LOG.info(f'{name} renamed to {safe_name}')
