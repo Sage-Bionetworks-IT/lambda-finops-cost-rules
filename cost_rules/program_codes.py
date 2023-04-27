@@ -1,4 +1,4 @@
-from cost_rules import builder, chart_client, tag_client, util
+from cost_rules import builder, chart_client, s3_client, tag_client, util
 
 import json
 import logging
@@ -78,7 +78,7 @@ def lambda_handler(event, context):
         Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
     """
 
-    result = { "statusCode": 200 }
+    result = { "statusCode": 201 }
     try:
         # get environment variables
         chart_url = util.get_os_var('ChartOfAccountsURL')
@@ -95,8 +95,8 @@ def lambda_handler(event, context):
         # generate rules
         rules_data = _build_program_rules(chart_data, tag_list, account_codes)
 
-        result["body"] = json.dumps(rules_data)
-        result["headers"] = { "content-type": "application/json; charset=utf-8" }
+        # write rules to s3
+        s3_client.write_rules_to_s3('program-code-rules.yaml', json.dumps(rules_data))
 
     except Exception as exc:
         result["statusCode"] = 500

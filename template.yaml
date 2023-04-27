@@ -37,6 +37,33 @@ Resources:
         CertificateArn: !Ref AcmCertificateArn
         EndpointConfiguration: EDGE
 
+  OutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
+      PublicAccessBlockConfiguration:
+        BlockPublicPolicy: False
+      AccessControl: PublicRead
+
+  OutputBucketPublicRead:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref OutputBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "AllowPublicRead"
+            Effect: "Allow"
+            Principal:
+              AWS: "*"
+            Action:
+              - "s3:Get*"
+              - "s3:List*"
+            Resource: !Sub "arn:aws:s3:::${OutputBucket}/*"
+
   Function:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -46,6 +73,7 @@ Resources:
       Role: !GetAtt FunctionRole.Arn
       Environment:
         Variables:
+          BucketName: !Ref OutputBucket
           ChartOfAccountsURL: !Ref ChartOfAccountsURL
           ProgramCodeTagList: !Ref ProgramCodeTagList
       Events:
@@ -55,6 +83,11 @@ Resources:
             Path: /program-codes
             Method: get
             RestApiId: !Ref RestApi
+        NightlyRun:
+          Type: Schedule
+          Properties:
+            Schedule: 'cron(30 19 * * ? *)'
+
   OwnerEmailFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -64,6 +97,7 @@ Resources:
       Role: !GetAtt FunctionRole.Arn
       Environment:
         Variables:
+          BucketName: !Ref OutputBucket
           OwnerEmailTagList: !Ref OwnerEmailTagList
       Events:
         OwnerEmailRules:
@@ -72,6 +106,10 @@ Resources:
             Path: /owner-emails
             Method: get
             RestApiId: !Ref RestApi
+        NightlyRun:
+          Type: Schedule
+          Properties:
+            Schedule: 'cron(30 19 * * ? *)'
 
   FunctionRole:   # execute lambda function with this role
     Type: AWS::IAM::Role
@@ -96,6 +134,10 @@ Resources:
                 Action:
                   - 'organizations:ListAccounts'
                   - 'organizations:ListTagsForResource'
+                Effect: Allow
+              - Resource: !Sub "arn:aws:s3:::${OutputBucket}/*"
+                Action:
+                  - "s3:*"
                 Effect: Allow
 
 Outputs:
