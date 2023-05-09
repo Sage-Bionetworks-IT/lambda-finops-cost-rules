@@ -72,13 +72,18 @@ The following template parameters are passed through as environment variables
 
 ### Triggering
 The CloudFormation template will output the available endpoint URL for triggering the lambda, e.g.:
-`https://abcxyz.execute-api.amazonaws.com/rules`
+`https://abcxyz.execute-api.amazonaws.com/program-codes`
 
 These URLs can be also constructed by appending the API Gateway paths to the CloudFormation domain.
 
-### Response
-This lambda will produce a JSON string to be passed to a Rules property of an AWS::CE::CostCategory
-resource based on external state (current AWS account tags and output from another lambda).
+### Output
+This lambda will write JSON objects to an S3 bucket containing data to be
+passed to a Rules property of an AWS::CE::CostCategory resource. The rules
+generated are based on external state (current AWS account tags and output from another lambda).
+
+The rules for the Program Code category will be written to a file named `program-code-rules.yaml`,
+and the rules for the Owner Email category will be written to a file name `owner-email-rules.yaml`.
+
 Example state and its expected output are listed below for each endpoint.
 
 #### Example Program Code External State
@@ -281,63 +286,33 @@ The owner-emails endpoint will produce the following rules from the above state:
 
 This string can be passed to the [`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
 
-### Example Usage (sceptre)
+### Example Usage
 
-To use the output of this lambda in [sceptre](https://github.com/Sceptre/sceptre), use `wget` in a [`!rcmd` resolver](https://docs.sceptre-project.org/dev/docs/resolvers.html#file)
+To use the output of this lambda in CloudFormation, reference the S3 objects in an AWS::Include transform:
 
-`config/dev/ce.yaml`
-```yaml
-template:
-  path: categories.yaml
-parameters:
-  CostCategoryRules: !rcmd wget -qO- https://lambda-finops-cost-rules.execute-api.amazonaws.com/rules
-```
 
-`templates/categories.yaml`
 ```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'All Cost Categories'
-Parameters:
-  CostCategoryRules:
-    Type: String
 Resources:
+  OwnerEmailCostCategory:
+    Type: 'AWS::CE::CostCategory'
+    Properties:
+      Name: 'Owner Email'
+      'Fn:Transform':
+        Name: 'AWS::Include'
+        Parameters:
+          Location: 's3://<OutputBucket>/owner-email-rules.yaml'
   ProgramCodeCostCategory:
     Type: 'AWS::CE::CostCategory'
     Properties:
       Name: 'Program Code'
-      RuleVersion: 'CostCategoryExpression.v1'
-      Rules: !Ref CostCategoryRules
+      'Fn:Transform':
+        Name: 'AWS::Include'
+        Parameters:
+          Location: 's3://<OutputBucket>/program-code-rules.yaml'
 ```
 
-### Example Usage (org-formation)
-
-To use the output of this lambda in [org-formation](https://github.com/org-formation/org-formation-cli), use `wget` in a [`!Cmd` function](https://github.com/org-formation/org-formation-cli/blob/master/docs/task-files.md#cmd)
-
-`_tasks.yaml`
-```yaml
-CostCategories:
-  Type: update-stacks
-  Template: categories.yaml
-  StackName: 'cost-categories'
-  Parameters:
-    CostCategoryRules: !Cmd 'wget -qO- https://lambda-finops-cost-rules.execute-api.amazonaws.com/rules'
-```
-
-`categories.yaml`
-```yaml
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'All Cost Categories'
-Parameters:
-  CostCategoryRules:
-    Type: String
-Resources:
-  ProgramCodeCostCategory:
-    Type: 'AWS::CE::CostCategory'
-    Properties:
-      Name: 'Program Code'
-      RuleVersion: 'CostCategoryExpression.v1'
-      Rules: !Ref CostCategoryRules
-```
 
 ## Development
 
