@@ -81,12 +81,14 @@ The following template parameters are passed through as environment variables
 
 ### Triggering
 
-The CloudFormation template will output the available endpoint URL for
-triggering the lambda, e.g.:
-`https://abcxyz.execute-api.amazonaws.com/program-codes`
+Both functions will trigger on a nightly schedule, and can also be triggered
+manually via API Gateway endpoints.
 
-These URLs can be also constructed by appending the API Gateway paths to the
-CloudFormation domain.
+The CloudFormation template will output the available endpoint URLs for manually
+triggering the lambda, e.g.: `https://<DnsName>/program-codes`
+
+The API Origin can also be used to construct an alternate URL by appending the
+stage name and endpoint path, e.g.: `https://<ApiDomain>/Prod/program-codes`
 
 ### Output
 
@@ -96,8 +98,9 @@ are based on external state (current AWS account tags and output from another
 lambda).
 
 The rules for the Program Code category will be written to a file named
-`program-code-rules.yaml`, and the rules for the Owner Email category will be
-written to a file name `owner-email-rules.yaml`.
+`cost-categories/program-code-rules.yaml`, and the rules for the Owner Email
+category will be written to a file named
+`cost-categories/owner-email-rules.yaml`.
 
 Example state and its expected output are listed below for each endpoint.
 
@@ -253,54 +256,22 @@ The owner-emails endpoint will produce the following rules from the above state:
     },
     {
         "Rule": {
-            "And": [
-                {
-                    "Dimensions": {
-                        "Key": "LINKED_ACCOUNT",
-                        "MatchOptions": ["EQUALS"],
-                        "Values": ["111222333444", "333444555666"]
-                    }
-                },
-                {
-                    "Tags": {
-                        "Key": "TagOne",
-                        "MatchOptions": ["ABSENT"]
-                    }
-                },
-                {
-                    "Tags": {
-                        "Key": "TagTwo",
-                        "MatchOptions": ["ABSENT"]
-                    }
-                }
-            ]
+            "Dimensions": {
+                "Key": "LINKED_ACCOUNT",
+                "MatchOptions": ["EQUALS"],
+                "Values": ["111222333444", "333444555666"]
+            }
         },
          "Type": "REGULAR",
         "Value": "foo@sagebase.org"
     },
     {
         "Rule": {
-            "And": [
-                {
-                    "Dimensions": {
-                        "Key": "LINKED_ACCOUNT",
-                        "MatchOptions": ["EQUALS"],
-                        "Values": ["222333444555"]
-                    }
-                },
-                {
-                    "Tags": {
-                        "Key": "TagOne",
-                        "MatchOptions": ["ABSENT"]
-                    }
-                },
-                   {
-                    "Tags": {
-                        "Key": "TagTwo",
-                        "MatchOptions": ["ABSENT"]
-                    }
-                }
-            ]
+            "Dimensions": {
+                "Key": "LINKED_ACCOUNT",
+                "MatchOptions": ["EQUALS"],
+                "Values": ["222333444555"]
+            }
         },
         "Type": "REGULAR",
         "Value": "bar@sagebase.org"
@@ -313,8 +284,10 @@ This string can be passed to the
 
 ### Example Usage
 
-To use the output of this lambda in CloudFormation, reference the S3 objects in
-an AWS::Include transform:
+The output of this lambda is intended to be used when creating
+AWS::CE::CostCategory resources in CloudFormation, but can easily grow beyond
+the 4096 character limit for parameters. And so the data is written to S3 so
+that it can be referenced by an AWS::Include transform, for example:
 
 ```yaml
 AWSTemplateFormatVersion: '2010-09-09'
@@ -327,7 +300,7 @@ Resources:
       'Fn:Transform':
         Name: 'AWS::Include'
         Parameters:
-          Location: 's3://<OutputBucket>/owner-email-rules.yaml'
+          Location: 's3://<OutputBucket>/cost-categories/owner-email-rules.yaml'
   ProgramCodeCostCategory:
     Type: 'AWS::CE::CostCategory'
     Properties:
@@ -335,8 +308,16 @@ Resources:
       'Fn:Transform':
         Name: 'AWS::Include'
         Parameters:
-          Location: 's3://<OutputBucket>/program-code-rules.yaml'
+          Location: 's3://<OutputBucket>/cost-categories/program-code-rules.yaml'
 ```
+
+### Known Issues
+
+#### Account-based email rules
+
+The AWS Cost Category service will refuse to create a REGULAR rule if the name
+of the category contains special characters outside of `-` or `_`, and so
+categories named for email addresses can only be created by INHERIT rules.
 
 ## Development
 
@@ -464,9 +445,9 @@ stack_tags:
   OwnerEmail: "it@sagebase.org"
 parameters:
   ProgramCodeTagList: "CostCenter,CostCenterOther"
-  OwnerEmailTagList: "OwnerEmail,Owner,Email"
-  ChartOfAccountsURL: "https://lambda-mips-api.execute-api.amazonaws.com/accounts"
-  DnsName: "cost-rules.example.com"
+  OwnerEmailTagList: "OwnerEmail,synapse:email"
+  ChartOfAccountsURL: "https://mips-api.finops.sageit.org/accounts"
+  DnsName: "cost-rules.finops.sageit.org"
   AcmCertificateArn: "arn:aws:acm:us-east-1:<ACCOUNT_ID>:certificate/<UUID>"
 ```
 

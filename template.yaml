@@ -40,14 +40,11 @@ Resources:
   OutputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      OwnershipControls:
-        Rules:
-          - ObjectOwnership: ObjectWriter
       PublicAccessBlockConfiguration:
         BlockPublicPolicy: False
-      AccessControl: PublicRead
+        RestrictPublicBuckets: False
 
-  OutputBucketPublicRead:
+  OutputBucketPublicReadPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref OutputBucket
@@ -55,13 +52,20 @@ Resources:
         Version: "2012-10-17"
         Statement:
           -
-            Sid: "AllowPublicRead"
+            Sid: "AllowPublicList"
+            Effect: "Allow"
+            Principal:
+              AWS: "*"
+            Action:
+              - "s3:List*"
+            Resource: !Sub "arn:aws:s3:::${OutputBucket}"
+          -
+            Sid: "AllowPublicGet"
             Effect: "Allow"
             Principal:
               AWS: "*"
             Action:
               - "s3:Get*"
-              - "s3:List*"
             Resource: !Sub "arn:aws:s3:::${OutputBucket}/*"
 
   Function:
@@ -86,7 +90,7 @@ Resources:
         NightlyRun:
           Type: Schedule
           Properties:
-            Schedule: 'cron(30 19 * * ? *)'
+            Schedule: 'cron(30 2 * * ? *)'
 
   OwnerEmailFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -109,7 +113,7 @@ Resources:
         NightlyRun:
           Type: Schedule
           Properties:
-            Schedule: 'cron(30 19 * * ? *)'
+            Schedule: 'cron(30 2 * * ? *)'
 
   FunctionRole:   # execute lambda function with this role
     Type: AWS::IAM::Role

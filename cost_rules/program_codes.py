@@ -96,7 +96,7 @@ def lambda_handler(event, context):
         rules_data = _build_program_rules(chart_data, tag_list, account_codes)
 
         # write rules to s3
-        s3_client.write_rules_to_s3('program-code-rules.yaml', json.dumps(rules_data))
+        s3_client.write_rules_to_s3('cost-categories/program-code-rules.yaml', json.dumps(rules_data))
 
     except Exception as exc:
         result["statusCode"] = 500
