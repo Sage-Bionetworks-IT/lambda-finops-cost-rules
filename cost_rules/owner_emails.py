@@ -1,4 +1,4 @@
-from cost_rules import builder, chart_client, tag_client, util
+from cost_rules import builder, chart_client, s3_client, tag_client, util
 
 import json
 
@@ -48,7 +48,7 @@ def lambda_handler(event, context):
         Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
     """
 
-    result = { "statusCode": 200 }
+    result = { "statusCode": 201 }
     try:
         # get environment variables
         _tag_list = util.get_os_var('OwnerEmailTagList')
@@ -60,8 +60,8 @@ def lambda_handler(event, context):
         # generate rules
         rules_data = _build_owner_rules(tag_list, account_owners)
 
-        result["body"] = json.dumps(rules_data)
-        result["headers"] = { "content-type": "application/json; charset=utf-8" }
+        # write rules to s3
+        s3_client.write_rules_to_s3('cost-categories/owner-email-rules.yaml', json.dumps(rules_data))
 
     except Exception as exc:
         result["statusCode"] = 500

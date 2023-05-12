@@ -1,12 +1,15 @@
 # lambda-finops-cost-rules
+
 A lambda for generating the JSON string used by the Rules property of an
 AWS::CE::CostCategory CloudFormation resource.
 
 ## Design
+
 This lambda is intended to transform the chart of accounts returned from
 [lambda-mips-api](https://github.com/Sage-Bionetworks-IT/lambda-mips-api),
 combined with current AWS account tags, into cost-category rules (JSON string)
-appropriate to pass to the [`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
+appropriate to pass to the
+[`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
 
 This lambda will query `lambda-mips-api` for a chart of accounts (a mapping of
 program codes and program names), and query AWS Organizations for account-level
@@ -15,8 +18,8 @@ cost-tracking tags.
 Cost categories are created for each program listed in the chart of accounts.
 
 Tags may exist on either individual cloud resources or on their containing
-accounts which assign the resource costs to a particular program category.
-A list of tag names that may contain program assignments are provided as a
+accounts which assign the resource costs to a particular program category. A
+list of tag names that may contain program assignments are provided as a
 template parameter.
 
 ### Category Rules
@@ -26,20 +29,22 @@ tags for the line item resource or its containing account.
 
 Two types of rules can be generated: rules for a Program Code category, or rules
 for an Owner Email category. The former assumes the tag contains a significant
-numeric code and requires additional external state, while the latter assumes that
-the entire tag value is a significant string.
+numeric code and requires additional external state, while the latter assumes
+that the entire tag value is a significant string.
 
 The order of the rules matters because processing will stop at the first match.
-For more information on rule processing, see the [AWS User Guide](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html).
+For more information on rule processing, see the
+[AWS User Guide](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html).
 
 #### Program Code Category
 
 The rules generated for a Program Code category are dependent on the output of
-`lambda-mips-api` for a list of current codes, as well as the current account tags.
+`lambda-mips-api` for a list of current codes, as well as the current account
+tags.
 
 First, this lambda will create cost-category rules that check a list of tags
-(provided as a template parameter) for every combination of program code and
-tag name, then also create rules for each account with an appropriate tag, and
+(provided as a template parameter) for every combination of program code and tag
+name, then also create rules for each account with an appropriate tag, and
 finally create rules to inherit the value from a listed tag if no other rule
 matches.
 
@@ -49,42 +54,64 @@ Rules for an Owner Email category can also be generated from existing account
 tags.
 
 In this case, we treat the tag value as authoritative (no code deduplication),
-and so we start with inheriting tag values from tags on individual resources.
-We then fall back to rules built from account tag values for any accounts
-tagged with a listed tag.
+and so we start with inheriting tag values from tags on individual resources. We
+then fall back to rules built from account tag values for any accounts tagged
+with a listed tag.
 
 ### Components
+
 ![Component Diagram](docs/component.diagram.png)
 
 ### Template Parameters
+
 The following template parameters are used to configure Cloudformation resources
-| Template Parameter | Description | Example Value |
-| --- | --- | --- |
-| DnsName | Custom host name to use for API Gateway | cost-rules.example.com |
-| AcmCertificateArn | AWS ARN of an ACM certificate valid for `DnsName` | arn:aws:acm:us-east-1:&lt;ACCOUNT ID>:certificate/&lt;CERTIFICATE UUID> |
+
+| Template Parameter | Description                                       | Example Value                                                       |
+| ------------------ | ------------------------------------------------- | ------------------------------------------------------------------- |
+| DnsName            | Custom host name to use for API Gateway           | cost-rules.example.com                                              |
+| AcmCertificateArn  | AWS ARN of an ACM certificate valid for `DnsName` | arn:aws:acm:us-east-1:\<ACCOUNT ID>:certificate/\<CERTIFICATE UUID> |
 
 The following template parameters are passed through as environment variables
-| Template Parameter | Environment Variable | Description | Example Value |
-| --- | --- | --- | --- |
-| ChartOfAccountsURL | ChartOfAccountsURL | URL to the chart of accounts endpoint provided by `lambda-mips-api` | https://lambda-mips-api.execute-api.amazonaws.com/accounts |
-| ProgramCodeTagList | ProgramCodeTagList | Comma-separated list of tag names that may contain program-code assignment | CostCenter,CostCenterOther |
-| OwnerEmailTagList | OwnerEmailTagList | Comma-separated list of tag names that may contain an owner email address | OwnerEmail,synapseEmail |
+
+| Template Parameter | Environment Variable | Description                                                                | Example Value                                              |
+| ------------------ | -------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| ChartOfAccountsURL | ChartOfAccountsURL   | URL to the chart of accounts endpoint provided by `lambda-mips-api`        | https://lambda-mips-api.execute-api.amazonaws.com/accounts |
+| ProgramCodeTagList | ProgramCodeTagList   | Comma-separated list of tag names that may contain program-code assignment | CostCenter,CostCenterOther                                 |
+| OwnerEmailTagList  | OwnerEmailTagList    | Comma-separated list of tag names that may contain an owner email address  | OwnerEmail,synapseEmail                                    |
 
 ### Triggering
-The CloudFormation template will output the available endpoint URL for triggering the lambda, e.g.:
-`https://abcxyz.execute-api.amazonaws.com/rules`
 
-These URLs can be also constructed by appending the API Gateway paths to the CloudFormation domain.
+Both functions will trigger on a nightly schedule, and can also be triggered
+manually via API Gateway endpoints.
 
-### Response
-This lambda will produce a JSON string to be passed to a Rules property of an AWS::CE::CostCategory
-resource based on external state (current AWS account tags and output from another lambda).
+The CloudFormation template will output the available endpoint URLs for manually
+triggering the lambda, e.g.: `https://<DnsName>/program-codes`
+
+The API Origin can also be used to construct an alternate URL by appending the
+stage name and endpoint path, e.g.: `https://<ApiDomain>/Prod/program-codes`
+
+### Output
+
+This lambda will write JSON objects to an S3 bucket containing data to be passed
+to a Rules property of an AWS::CE::CostCategory resource. The rules generated
+are based on external state (current AWS account tags and output from another
+lambda).
+
+The rules for the Program Code category will be written to a file named
+`cost-categories/program-code-rules.yaml`, and the rules for the Owner Email
+category will be written to a file named
+`cost-categories/owner-email-rules.yaml`.
+
 Example state and its expected output are listed below for each endpoint.
 
 #### Example Program Code External State
-The program-codes endpoint queries two remote sources for their current state: the current chart of accounts from `lambda-mips-api` and current account tags from AWS Organizations.
+
+The program-codes endpoint queries two remote sources for their current state:
+the current chart of accounts from `lambda-mips-api` and current account tags
+from AWS Organizations.
 
 Example chart of accounts returned by `lambda-mips-api` at `ChartOfAccountsURL`:
+
 ```json
 [
     "000000": "No Program / 000000",
@@ -95,15 +122,17 @@ Example chart of accounts returned by `lambda-mips-api` at `ChartOfAccountsURL`:
 ```
 
 Example existing AWS account tags:
-| Account ID | Tag value from a tag listed in `TagList` |
-| --- | --- |
-| 111122223333 | `Program Part A / 123456` |
-| 222233334444 | `Program Part B / 123456` |
-| 333344445555 | `Other Program / 654321` |
 
+| Account ID   | Tag value from a tag listed in `TagList` |
+| ------------ | ---------------------------------------- |
+| 111122223333 | `Program Part A / 123456`                |
+| 222233334444 | `Program Part B / 123456`                |
+| 333344445555 | `Other Program / 654321`                 |
 
 #### Example Program Code Output
-The program-codes endpoint will produce the following rules from the above state:
+
+The program-codes endpoint will produce the following rules from the above
+state:
 
 ```json
 [
@@ -190,20 +219,23 @@ The program-codes endpoint will produce the following rules from the above state
 ]
 ```
 
-This string can be passed to the [`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
+This string can be passed to the
+[`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
 
 #### Example Owner Email External State
+
 The owner-emails endpoint queries current account tags from AWS Organizations.
 
 Example existing AWS account tags:
-| Account ID | Tag value from a tag listed in `TagList` |
-| --- | --- |
-| 111122223333 | `foo@sagebase.org` |
-| 222233334444 | `foo@sagebase.org` |
-| 333344445555 | `bar@sagebase.org` |
 
+| Account ID   | Tag value from a tag listed in `TagList` |
+| ------------ | ---------------------------------------- |
+| 111122223333 | `foo@sagebase.org`                       |
+| 222233334444 | `foo@sagebase.org`                       |
+| 333344445555 | `bar@sagebase.org`                       |
 
 #### Example Owner Email Output
+
 The owner-emails endpoint will produce the following rules from the above state:
 
 ```json
@@ -211,67 +243,35 @@ The owner-emails endpoint will produce the following rules from the above state:
     {
         "InheritedValue": {
             "DimensionName": "TAG",
-            "DimensionValue": "TagOne"
+            "DimensionKey": "TagOne"
         },
         "Type": "INHERITED_VALUE"
     },
     {
         "InheritedValue": {
             "DimensionName": "TAG",
-            "DimensionValue": "TagTwo"
+            "DimensionKey": "TagTwo"
         },
         "Type": "INHERITED_VALUE"
     },
     {
         "Rule": {
-            "And": [
-                {
-                    "Dimensions": {
-                        "Key": "LINKED_ACCOUNT",
-                        "MatchOptions": ["EQUALS"],
-                        "Values": ["111222333444", "333444555666"]
-                    }
-                },
-                {
-                    "Tags": {
-                        "Key": "TagOne",
-                        "MatchOptions": ["ABSENT"]
-                    }
-                },
-                {
-                    "Tags": {
-                        "Key": "TagTwo",
-                        "MatchOptions": ["ABSENT"]
-                    }
-                }
-            ]
+            "Dimensions": {
+                "Key": "LINKED_ACCOUNT",
+                "MatchOptions": ["EQUALS"],
+                "Values": ["111222333444", "333444555666"]
+            }
         },
          "Type": "REGULAR",
         "Value": "foo@sagebase.org"
     },
     {
         "Rule": {
-            "And": [
-                {
-                    "Dimensions": {
-                        "Key": "LINKED_ACCOUNT",
-                        "MatchOptions": ["EQUALS"],
-                        "Values": ["222333444555"]
-                    }
-                },
-                {
-                    "Tags": {
-                        "Key": "TagOne",
-                        "MatchOptions": ["ABSENT"]
-                    }
-                },
-                   {
-                    "Tags": {
-                        "Key": "TagTwo",
-                        "MatchOptions": ["ABSENT"]
-                    }
-                }
-            ]
+            "Dimensions": {
+                "Key": "LINKED_ACCOUNT",
+                "MatchOptions": ["EQUALS"],
+                "Values": ["222333444555"]
+            }
         },
         "Type": "REGULAR",
         "Value": "bar@sagebase.org"
@@ -279,83 +279,66 @@ The owner-emails endpoint will produce the following rules from the above state:
 ]
 ```
 
-This string can be passed to the [`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
+This string can be passed to the
+[`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
 
-### Example Usage (sceptre)
+### Example Usage
 
-To use the output of this lambda in [sceptre](https://github.com/Sceptre/sceptre), use `wget` in a [`!rcmd` resolver](https://docs.sceptre-project.org/dev/docs/resolvers.html#file)
+The output of this lambda is intended to be used when creating
+AWS::CE::CostCategory resources in CloudFormation, but can easily grow beyond
+the 4096 character limit for parameters. And so the data is written to S3 so
+that it can be referenced by an AWS::Include transform, for example:
 
-`config/dev/ce.yaml`
-```yaml
-template:
-  path: categories.yaml
-parameters:
-  CostCategoryRules: !rcmd wget -qO- https://lambda-finops-cost-rules.execute-api.amazonaws.com/rules
-```
-
-`templates/categories.yaml`
 ```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'All Cost Categories'
-Parameters:
-  CostCategoryRules:
-    Type: String
 Resources:
+  OwnerEmailCostCategory:
+    Type: 'AWS::CE::CostCategory'
+    Properties:
+      Name: 'Owner Email'
+      'Fn:Transform':
+        Name: 'AWS::Include'
+        Parameters:
+          Location: 's3://<OutputBucket>/cost-categories/owner-email-rules.yaml'
   ProgramCodeCostCategory:
     Type: 'AWS::CE::CostCategory'
     Properties:
       Name: 'Program Code'
-      RuleVersion: 'CostCategoryExpression.v1'
-      Rules: !Ref CostCategoryRules
+      'Fn:Transform':
+        Name: 'AWS::Include'
+        Parameters:
+          Location: 's3://<OutputBucket>/cost-categories/program-code-rules.yaml'
 ```
 
-### Example Usage (org-formation)
+### Known Issues
 
-To use the output of this lambda in [org-formation](https://github.com/org-formation/org-formation-cli), use `wget` in a [`!Cmd` function](https://github.com/org-formation/org-formation-cli/blob/master/docs/task-files.md#cmd)
+#### Account-based email rules
 
-`_tasks.yaml`
-```yaml
-CostCategories:
-  Type: update-stacks
-  Template: categories.yaml
-  StackName: 'cost-categories'
-  Parameters:
-    CostCategoryRules: !Cmd 'wget -qO- https://lambda-finops-cost-rules.execute-api.amazonaws.com/rules'
-```
-
-`categories.yaml`
-```yaml
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'All Cost Categories'
-Parameters:
-  CostCategoryRules:
-    Type: String
-Resources:
-  ProgramCodeCostCategory:
-    Type: 'AWS::CE::CostCategory'
-    Properties:
-      Name: 'Program Code'
-      RuleVersion: 'CostCategoryExpression.v1'
-      Rules: !Ref CostCategoryRules
-```
+The AWS Cost Category service will refuse to create a REGULAR rule if the name
+of the category contains special characters outside of `-` or `_`, and so
+categories named for email addresses can only be created by INHERIT rules.
 
 ## Development
 
 ### Contributions
+
 Contributions are welcome.
 
 ### Setup Development Environment
 
 Install the following applications:
-* [AWS CLI](https://github.com/aws/aws-cli)
-* [AWS SAM CLI](https://github.com/aws/aws-sam-cli)
-* [pre-commit](https://github.com/pre-commit/pre-commit)
-* [pipenv](https://github.com/pypa/pipenv)
+
+- [AWS CLI](https://github.com/aws/aws-cli)
+- [AWS SAM CLI](https://github.com/aws/aws-sam-cli)
+- [pre-commit](https://github.com/pre-commit/pre-commit)
+- [pipenv](https://github.com/pypa/pipenv)
 
 Check in [.travis.yml](./.travis.yml) to see how they are installed for this
 repo.
 
 ### Install Requirements
+
 Run `pipenv install --dev` to install both production and development
 requirements, and `pipenv shell` to activate the virtual environment. For more
 information see the [pipenv docs](https://pipenv.pypa.io/en/latest/).
@@ -364,11 +347,11 @@ After activating the virtual environment, run `pre-commit install` to install
 the [pre-commit](https://pre-commit.com/) git hook.
 
 ### Update Requirements
-First, make any needed updates to the base requirements in `Pipfile`,
-then use `pipenv` to regenerate both `Pipfile.lock` and
-`requirements.txt`. We use `pipenv` to control versions in testing,
-but `sam` relies on `requirements.txt` directly for building the
-container used by the lambda.
+
+First, make any needed updates to the base requirements in `Pipfile`, then use
+`pipenv` to regenerate both `Pipfile.lock` and `requirements.txt`. We use
+`pipenv` to control versions in testing, but `sam` relies on `requirements.txt`
+directly for building the container used by the lambda.
 
 ```shell script
 $ pipenv update
@@ -376,6 +359,7 @@ $ pipenv requirements > requirements.txt
 ```
 
 Additionally, `pre-commit` manages its own requirements.
+
 ```shell script
 $ pre-commit autoupdate
 ```
@@ -387,6 +371,7 @@ $ sam build
 ```
 
 ### Run unit tests
+
 Tests are defined in the `tests` folder in this project. Use PIP to install the
 [pytest](https://docs.pytest.org/en/latest/) and run unit tests.
 
@@ -395,6 +380,7 @@ $ python -m pytest tests/ -v
 ```
 
 ### Run integration tests
+
 Running integration tests
 [requires docker](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-local-start-api.html)
 
@@ -405,6 +391,7 @@ $ sam local invoke Function --event events/event.json
 ## Deployment
 
 ### Deploy Lambda to S3
+
 Deployments are sent to the
 [Sage cloudformation repository](https://bootstrap-awss3cloudformationbucket-19qromfd235z9.s3.amazonaws.com/index.html)
 which requires permissions to upload to Sage
@@ -422,14 +409,17 @@ aws s3 cp .aws-sam/build/lambda-template.yaml s3://bootstrap-awss3cloudformation
 ## Publish Lambda
 
 ### Private access
-Publishing the lambda makes it available in your AWS account.  It will be accessible in
-the [serverless application repository](https://console.aws.amazon.com/serverlessrepo).
+
+Publishing the lambda makes it available in your AWS account. It will be
+accessible in the
+[serverless application repository](https://console.aws.amazon.com/serverlessrepo).
 
 ```shell script
 sam publish --template .aws-sam/build/lambda-template.yaml
 ```
 
 ### Public access
+
 Making the lambda publicly accessible makes it available in the
 [global AWS serverless application repository](https://serverlessrepo.aws.amazon.com/applications)
 
@@ -442,6 +432,7 @@ aws serverlessrepo put-application-policy \
 ## Install Lambda into AWS
 
 ### Sceptre
+
 Create the following [sceptre](https://github.com/Sceptre/sceptre) file
 config/prod/lambda-finops-cost-rules.yaml
 
@@ -454,31 +445,33 @@ stack_tags:
   OwnerEmail: "it@sagebase.org"
 parameters:
   ProgramCodeTagList: "CostCenter,CostCenterOther"
-  OwnerEmailTagList: "OwnerEmail,Owner,Email"
-  ChartOfAccountsURL: "https://lambda-mips-api.execute-api.amazonaws.com/accounts"
-  DnsName: "cost-rules.example.com"
+  OwnerEmailTagList: "OwnerEmail,synapse:email"
+  ChartOfAccountsURL: "https://mips-api.finops.sageit.org/accounts"
+  DnsName: "cost-rules.finops.sageit.org"
   AcmCertificateArn: "arn:aws:acm:us-east-1:<ACCOUNT_ID>:certificate/<UUID>"
 ```
 
 Install the lambda using sceptre:
+
 ```shell script
 sceptre --var "profile=my-profile" --var "region=us-east-1" launch prod/lambda-finops-cost-rules.yaml
 ```
 
 ### AWS Console
+
 Steps to deploy from AWS console.
 
 1. Login to AWS
-2. Access the
-[serverless application repository](https://console.aws.amazon.com/serverlessrepo)
--> Available Applications
-3. Select application to install
-4. Enter Application settings
-5. Click Deploy
+1. Access the
+   [serverless application repository](https://console.aws.amazon.com/serverlessrepo)
+   -> Available Applications
+1. Select application to install
+1. Enter Application settings
+1. Click Deploy
 
 ## Releasing
 
-We have setup our CI to automate a releases.  To kick off the process just create
-a tag (i.e 0.0.1) and push to the repo.  The tag must be the same number as the current
-version in [template.yaml](template.yaml).  Our CI will do the work of deploying and publishing
-the lambda.
+We have setup our CI to automate a releases. To kick off the process just create
+a tag (i.e 0.0.1) and push to the repo. The tag must be the same number as the
+current version in [template.yaml](template.yaml). Our CI will do the work of
+deploying and publishing the lambda.

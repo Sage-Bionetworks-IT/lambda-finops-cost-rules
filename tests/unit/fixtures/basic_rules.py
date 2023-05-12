@@ -9,27 +9,11 @@ mock_account_ids = [
 
 expected_account_rule = {
     'Rule': {
-        'And': [
-            {
-                'Dimensions': {
-                    'Key': 'LINKED_ACCOUNT',
-                    'MatchOptions': ['EQUALS'],
-                    'Values': ['111222333444', '222333444555']
-                }
-            },
-            {
-                'Tags': {
-                    'Key': 'TagOne',
-                    'MatchOptions': ['ABSENT']
-                }
-            },
-            {
-                'Tags': {
-                    'Key': 'TagTwo',
-                    'MatchOptions': ['ABSENT']
-                }
-            }
-        ]
+        'Dimensions': {
+            'Key': 'LINKED_ACCOUNT',
+            'MatchOptions': ['EQUALS'],
+            'Values': ['111222333444', '222333444555']
+        }
     },
     'Type': 'REGULAR',
     'Value': 'Category Name',
@@ -40,7 +24,7 @@ expected_tag_rules = [
         'Rule': {
             'Tags': {
                 'Key': 'TagOne',
-                'MatchOptions': ['STARTS_WITH', 'ENDS_WITH'],
+                'MatchOptions': ['ENDS_WITH'],
                 'Values': ['Value']
             }
         },
@@ -51,7 +35,7 @@ expected_tag_rules = [
         'Rule': {
             'Tags': {
                 'Key': 'TagTwo',
-                'MatchOptions': ['STARTS_WITH', 'ENDS_WITH'],
+                'MatchOptions': ['ENDS_WITH'],
                 'Values': ['Value']
             }
         },
@@ -64,14 +48,14 @@ expected_inherit_rules = [
     {
         'InheritedValue': {
             'DimensionName': 'TAG',
-            'DimensionValue': 'TagOne'
+            'DimensionKey': 'TagOne'
         },
         'Type': 'INHERITED_VALUE'
     },
     {
         'InheritedValue': {
             'DimensionName': 'TAG',
-            'DimensionValue': 'TagTwo'
+            'DimensionKey': 'TagTwo'
         },
         'Type': 'INHERITED_VALUE'
     },

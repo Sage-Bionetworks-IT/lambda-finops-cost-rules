@@ -26,3 +26,14 @@ def strip_special_chars(value):
     Replace any disallowed characters with '_'
     '''
     return re.sub('[^a-zA-Z0-9 -]', '_', value)
+
+def truncate_long_strings(string):
+    '''
+    Category names can only be 50 characters long, and we need 8 characters
+    to prepend the numeric code. Truncate long strings to 42 characters.
+    '''
+    return string[:42]
+
+def safe_category_name(name):
+    '''Wrap utility functions needed for category names'''
+    return strip_special_chars(truncate_long_strings(name))

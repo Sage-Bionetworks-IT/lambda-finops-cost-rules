@@ -3,67 +3,35 @@ expected_owner_rules = [
     {
         'InheritedValue': {
             'DimensionName': 'TAG',
-            'DimensionValue': 'TagOne'
+            'DimensionKey': 'TagOne'
         },
         'Type': 'INHERITED_VALUE'
     },
     {
         'InheritedValue': {
             'DimensionName': 'TAG',
-            'DimensionValue': 'TagTwo'
+            'DimensionKey': 'TagTwo'
         },
         'Type': 'INHERITED_VALUE'
     },
     {
         'Rule': {
-            'And': [
-                {
-                    'Dimensions': {
-                        'Key': 'LINKED_ACCOUNT',
-                        'MatchOptions': ['EQUALS'],
-                        'Values': ['111222333444', '333444555666']
-                    }
-                },
-                {
-                    'Tags': {
-                        'Key': 'TagOne',
-                        'MatchOptions': ['ABSENT']
-                    }
-                },
-                {
-                    'Tags': {
-                        'Key': 'TagTwo',
-                        'MatchOptions': ['ABSENT']
-                    }
-                }
-            ]
+            'Dimensions': {
+                'Key': 'LINKED_ACCOUNT',
+                'MatchOptions': ['EQUALS'],
+                'Values': ['111222333444', '333444555666']
+            }
         },
          'Type': 'REGULAR',
         'Value': 'foo@sagebase.org'
     },
     {
         'Rule': {
-            'And': [
-                {
-                    'Dimensions': {
-                        'Key': 'LINKED_ACCOUNT',
-                        'MatchOptions': ['EQUALS'],
-                        'Values': ['222333444555']
-                    }
-                },
-                {
-                    'Tags': {
-                        'Key': 'TagOne',
-                        'MatchOptions': ['ABSENT']
-                    }
-                },
-                   {
-                    'Tags': {
-                        'Key': 'TagTwo',
-                        'MatchOptions': ['ABSENT']
-                    }
-                }
-            ]
+            'Dimensions': {
+                'Key': 'LINKED_ACCOUNT',
+                'MatchOptions': ['EQUALS'],
+                'Values': ['222333444555']
+            }
         },
         'Type': 'REGULAR',
         'Value': 'bar@sagebase.org'

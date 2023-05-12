@@ -1,4 +1,15 @@
+import boto3
 import pytest
+
+
+@pytest.fixture()
+def org_client():
+    return boto3.client('organizations')
+
+
+@pytest.fixture()
+def s3_client():
+    return boto3.client('s3')
 
 
 @pytest.fixture()

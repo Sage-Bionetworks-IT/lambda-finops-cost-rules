@@ -41,8 +41,11 @@ def test_program_codes_handler(mocker, apigw_event):
                  autospec=True,
                  return_value=expected_program_rules)
 
+    # mock out write_rules_to_s3()
+    mocker.patch('cost_rules.s3_client.write_rules_to_s3',
+                 autospec=True)
+
     # test event
     ret = cost_rules.program_codes.lambda_handler(apigw_event, None)
 
-    assert ret["body"] == json.dumps(expected_program_rules)
-    assert ret['statusCode'] == 200
+    assert ret['statusCode'] == 201

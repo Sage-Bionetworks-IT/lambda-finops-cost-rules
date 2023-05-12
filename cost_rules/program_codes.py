@@ -1,4 +1,4 @@
-from cost_rules import builder, chart_client, tag_client, util
+from cost_rules import builder, chart_client, s3_client, tag_client, util
 
 import json
 import logging
@@ -20,10 +20,11 @@ def _build_program_rules(chart_codes, tag_names, account_codes):
 
     '''
     rules = []
+    account_rules = []
 
     # first, generate rules for each program code
     for code, name in chart_codes.items():
-        safe_name = util.strip_special_chars(name)
+        safe_name = util.safe_category_name(name)
 
         if safe_name != name:
             LOG.info(f'{name} renamed to {safe_name}')
@@ -39,12 +40,15 @@ def _build_program_rules(chart_codes, tag_names, account_codes):
 
         if code in account_codes:
             # if any accounts are tagged with this code,
-            # add a rule for them here
-            rules.append(builder.build_account_rule(
+            # add an account rule for them here
+            account_rules.append(builder.build_account_rule(
                 title,
                 tag_names,
                 account_codes[code]
             ))
+
+    # ensure that account rules come after resource rules
+    rules.extend(account_rules)
 
     # finally, inherit tag values if no other rule matched
     rules.extend(builder.build_inherit_rules(tag_names))
@@ -74,7 +78,7 @@ def lambda_handler(event, context):
         Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
     """
 
-    result = { "statusCode": 200 }
+    result = { "statusCode": 201 }
     try:
         # get environment variables
         chart_url = util.get_os_var('ChartOfAccountsURL')
@@ -91,8 +95,8 @@ def lambda_handler(event, context):
         # generate rules
         rules_data = _build_program_rules(chart_data, tag_list, account_codes)
 
-        result["body"] = json.dumps(rules_data)
-        result["headers"] = { "content-type": "application/json; charset=utf-8" }
+        # write rules to s3
+        s3_client.write_rules_to_s3('cost-categories/program-code-rules.yaml', json.dumps(rules_data))
 
     except Exception as exc:
         result["statusCode"] = 500
