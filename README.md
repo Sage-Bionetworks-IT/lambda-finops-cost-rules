@@ -27,11 +27,6 @@ template parameter.
 Cost-category rules are created to assign line item costs to a category based on
 tags for the line item resource or its containing account.
 
-Two types of rules can be generated: rules for a Program Code category, or rules
-for an Owner Email category. The former assumes the tag contains a significant
-numeric code and requires additional external state, while the latter assumes
-that the entire tag value is a significant string.
-
 The order of the rules matters because processing will stop at the first match.
 For more information on rule processing, see the
 [AWS User Guide](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html).
@@ -47,16 +42,6 @@ First, this lambda will create cost-category rules that check a list of tags
 name, then also create rules for each account with an appropriate tag, and
 finally create rules to inherit the value from a listed tag if no other rule
 matches.
-
-#### Owner Email Category
-
-Rules for an Owner Email category can also be generated from existing account
-tags.
-
-In this case, we treat the tag value as authoritative (no code deduplication),
-and so we start with inheriting tag values from tags on individual resources. We
-then fall back to rules built from account tag values for any accounts tagged
-with a listed tag.
 
 ### Components
 
@@ -77,11 +62,10 @@ The following template parameters are passed through as environment variables
 | ------------------ | -------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | ChartOfAccountsURL | ChartOfAccountsURL   | URL to the chart of accounts endpoint provided by `lambda-mips-api`        | https://lambda-mips-api.execute-api.amazonaws.com/accounts |
 | ProgramCodeTagList | ProgramCodeTagList   | Comma-separated list of tag names that may contain program-code assignment | CostCenter,CostCenterOther                                 |
-| OwnerEmailTagList  | OwnerEmailTagList    | Comma-separated list of tag names that may contain an owner email address  | OwnerEmail,synapseEmail                                    |
 
 ### Triggering
 
-Both functions will trigger on a nightly schedule, and can also be triggered
+The function will trigger on a nightly schedule, and can also be triggered
 manually via API Gateway endpoints.
 
 The CloudFormation template will output the available endpoint URLs for manually
@@ -92,15 +76,13 @@ stage name and endpoint path, e.g.: `https://<ApiDomain>/Prod/program-codes`
 
 ### Output
 
-This lambda will write JSON objects to an S3 bucket containing data to be passed
+This lambda will write a JSON object to an S3 bucket containing data to be passed
 to a Rules property of an AWS::CE::CostCategory resource. The rules generated
 are based on external state (current AWS account tags and output from another
 lambda).
 
 The rules for the Program Code category will be written to a file named
-`cost-categories/program-code-rules.yaml`, and the rules for the Owner Email
-category will be written to a file named
-`cost-categories/owner-email-rules.yaml`.
+`cost-categories/program-code-rules.yaml`.
 
 Example state and its expected output are listed below for each endpoint.
 
@@ -222,65 +204,6 @@ state:
 This string can be passed to the
 [`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
 
-#### Example Owner Email External State
-
-The owner-emails endpoint queries current account tags from AWS Organizations.
-
-Example existing AWS account tags:
-
-| Account ID   | Tag value from a tag listed in `TagList` |
-| ------------ | ---------------------------------------- |
-| 111122223333 | `foo@sagebase.org`                       |
-| 222233334444 | `foo@sagebase.org`                       |
-| 333344445555 | `bar@sagebase.org`                       |
-
-#### Example Owner Email Output
-
-The owner-emails endpoint will produce the following rules from the above state:
-
-```json
-[
-    {
-        "InheritedValue": {
-            "DimensionName": "TAG",
-            "DimensionKey": "TagOne"
-        },
-        "Type": "INHERITED_VALUE"
-    },
-    {
-        "InheritedValue": {
-            "DimensionName": "TAG",
-            "DimensionKey": "TagTwo"
-        },
-        "Type": "INHERITED_VALUE"
-    },
-    {
-        "Rule": {
-            "Dimensions": {
-                "Key": "LINKED_ACCOUNT",
-                "MatchOptions": ["EQUALS"],
-                "Values": ["111222333444", "333444555666"]
-            }
-        },
-         "Type": "REGULAR",
-        "Value": "foo@sagebase.org"
-    },
-    {
-        "Rule": {
-            "Dimensions": {
-                "Key": "LINKED_ACCOUNT",
-                "MatchOptions": ["EQUALS"],
-                "Values": ["222333444555"]
-            }
-        },
-        "Type": "REGULAR",
-        "Value": "bar@sagebase.org"
-    }
-]
-```
-
-This string can be passed to the
-[`Rules` property for `AWS::CE::CostCategory`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ce-costcategory.html#cfn-ce-costcategory-rules).
 
 ### Example Usage
 
@@ -293,14 +216,6 @@ that it can be referenced by an AWS::Include transform, for example:
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'All Cost Categories'
 Resources:
-  OwnerEmailCostCategory:
-    Type: 'AWS::CE::CostCategory'
-    Properties:
-      Name: 'Owner Email'
-      'Fn:Transform':
-        Name: 'AWS::Include'
-        Parameters:
-          Location: 's3://<OutputBucket>/cost-categories/owner-email-rules.yaml'
   ProgramCodeCostCategory:
     Type: 'AWS::CE::CostCategory'
     Properties:
@@ -310,14 +225,6 @@ Resources:
         Parameters:
           Location: 's3://<OutputBucket>/cost-categories/program-code-rules.yaml'
 ```
-
-### Known Issues
-
-#### Account-based email rules
-
-The AWS Cost Category service will refuse to create a REGULAR rule if the name
-of the category contains special characters outside of `-` or `_`, and so
-categories named for email addresses can only be created by INHERIT rules.
 
 ## Development
 
