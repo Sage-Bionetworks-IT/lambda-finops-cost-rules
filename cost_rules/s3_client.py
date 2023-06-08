@@ -33,7 +33,6 @@ def write_rules_to_s3(filename, rules_json):
     bucket = util.get_os_var('BucketName')
 
     yaml_obj = {}
-    yaml_obj['RuleVersion'] = 'CostCategoryExpression.v1'
     yaml_obj['Rules'] = rules_json
     yaml_str = yaml.dump(yaml_obj)
 

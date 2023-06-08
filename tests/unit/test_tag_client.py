@@ -1,4 +1,5 @@
 import cost_rules.tag_client
+from cost_rules.program_codes import code_regex
 from .fixtures.account_list import *
 from .fixtures.code_tags import *
 from .fixtures.owner_tags import *
@@ -46,5 +47,5 @@ def test_account_tags_regex(org_client):
             _stub.add_response('list_tags_for_resource', mock_resource_code_tags_b)
 
             # assert codes were collected
-            found_account_codes = cost_rules.tag_client.collect_account_tags(expected_tag_list, cost_rules.tag_client.tag_regex)
+            found_account_codes = cost_rules.tag_client.collect_account_tags(expected_tag_list, code_regex)
             assert found_account_codes == expected_account_codes

@@ -7,6 +7,9 @@ import logging
 LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.INFO)
 
+# regular expression for finding program codes in tags
+code_regex = r'[0-9]{5,6}'
+
 
 def _build_program_rules(chart_codes, tag_names, account_codes):
     '''
@@ -87,7 +90,7 @@ def lambda_handler(event, context):
         tag_list = util.parse_env_list(_tag_list)
 
         # get account tags
-        account_codes = tag_client.collect_account_tags(tag_list, r'[0-9]{6}')
+        account_codes = tag_client.collect_account_tags(tag_list, code_regex)
 
         # get chart of accounts
         chart_data = chart_client.collect_chart_of_accounts(chart_url)
