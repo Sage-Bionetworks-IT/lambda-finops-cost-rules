@@ -12,9 +12,6 @@ LOG.setLevel(logging.INFO)
 # in the lambda environment and re-used on warm runs.
 org_client = None
 
-# regular expression for finding program codes in tags
-tag_regex = r'[0-9]{6}'
-
 
 def collect_account_tags(tag_names, regex=None):
     '''
