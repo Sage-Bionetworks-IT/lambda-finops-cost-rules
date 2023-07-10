@@ -91,9 +91,11 @@ def lambda_handler(event, context):
 
         # get account tags
         account_codes = tag_client.collect_account_tags(tag_list, code_regex)
+        LOG.debug(f"Account codes: {account_codes}")
 
         # get chart of accounts
         chart_data = chart_client.collect_chart_of_accounts(chart_url)
+        LOG.debug(f"Chart data: {chart_data}")
 
         # generate rules
         rules_data = _build_program_rules(chart_data, tag_list, account_codes)
