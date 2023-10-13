@@ -8,6 +8,7 @@ pytest = "~=7.1"
 pytest-mock = "~=3.8"
 boto3 = "~=1.24"
 requests-mock = "~=1.10"
+coverage = "~=7.0"
 
 [packages]
 pyyaml = "~=6.0"
