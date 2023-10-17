@@ -4,17 +4,17 @@ import pytest
 
 @pytest.fixture()
 def org_client():
-    return boto3.client('organizations')
+    return boto3.client("organizations")
 
 
 @pytest.fixture()
 def s3_client():
-    return boto3.client('s3')
+    return boto3.client("s3")
 
 
 @pytest.fixture()
 def apigw_event():
-    """ Generates API GW Event"""
+    """Generates API GW Event"""
 
     return {
         "body": '{ "test": "body"}',

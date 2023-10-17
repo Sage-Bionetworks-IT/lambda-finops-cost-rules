@@ -1,18 +1,17 @@
-from cost_rules import builder, chart_client, s3_client, tag_client, util
-
 import json
 import logging
 
+from cost_rules import builder, chart_client, s3_client, tag_client, util
 
 LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.INFO)
 
 # regular expression for finding program codes in tags
-code_regex = r'[0-9]{5,6}'
+code_regex = r"[0-9]{5,6}"
 
 
 def _build_program_rules(chart_codes, tag_names, account_codes):
-    '''
+    """
     Build a list of cost-category rules.
     Rule order matters, first rule matched wins.
 
@@ -21,7 +20,7 @@ def _build_program_rules(chart_codes, tag_names, account_codes):
       2. Check for accounts tagged with the program code.
     Finally, if an unmatched tag value exists, create a new category from it.
 
-    '''
+    """
     rules = []
     account_rules = []
 
@@ -30,25 +29,19 @@ def _build_program_rules(chart_codes, tag_names, account_codes):
         safe_name = util.safe_category_name(name)
 
         if safe_name != name:
-            LOG.info(f'{name} renamed to {safe_name}')
+            LOG.info(f"{name} renamed to {safe_name}")
 
         title = f"{code} {safe_name}"
 
         # generate rules checking each tag
-        rules.extend(builder.build_tag_rules(
-            title,
-            tag_names,
-            code
-        ))
+        rules.extend(builder.build_tag_rules(title, tag_names, code))
 
         if code in account_codes:
             # if any accounts are tagged with this code,
             # add an account rule for them here
-            account_rules.append(builder.build_account_rule(
-                title,
-                tag_names,
-                account_codes[code]
-            ))
+            account_rules.append(
+                builder.build_account_rule(title, tag_names, account_codes[code])
+            )
 
     # ensure that account rules come after resource rules
     rules.extend(account_rules)
@@ -60,7 +53,8 @@ def _build_program_rules(chart_codes, tag_names, account_codes):
 
 
 def lambda_handler(event, context):
-    """Sample pure Lambda function
+    """
+    Sample pure Lambda function
 
     Parameters
     ----------
@@ -81,12 +75,12 @@ def lambda_handler(event, context):
         Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
     """
 
-    result = { "statusCode": 201 }
+    result = {"statusCode": 201}
     try:
         # get environment variables
-        chart_url = util.get_os_var('ChartOfAccountsURL')
+        chart_url = util.get_os_var("ChartOfAccountsURL")
 
-        _tag_list = util.get_os_var('ProgramCodeTagList')
+        _tag_list = util.get_os_var("ProgramCodeTagList")
         tag_list = util.parse_env_list(_tag_list)
 
         # get account tags
@@ -101,7 +95,9 @@ def lambda_handler(event, context):
         rules_data = _build_program_rules(chart_data, tag_list, account_codes)
 
         # write rules to s3
-        s3_client.write_rules_to_s3('cost-categories/program-code-rules.yaml', json.dumps(rules_data))
+        s3_client.write_rules_to_s3(
+            "cost-categories/program-code-rules.yaml", json.dumps(rules_data)
+        )
 
     except Exception as exc:
         result["statusCode"] = 500
