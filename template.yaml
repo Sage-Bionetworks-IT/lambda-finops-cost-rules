@@ -70,7 +70,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: cost_rules/program_codes.lambda_handler
-      Runtime: python3.9
+      Runtime: python3.12
       Role: !GetAtt FunctionRole.Arn
       Environment:
         Variables:
