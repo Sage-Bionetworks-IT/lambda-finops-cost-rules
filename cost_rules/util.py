@@ -19,13 +19,14 @@ def parse_env_list(string):
     return string.split(",")
 
 
-def strip_special_chars(value):
+def strip_invalid_chars(value):
     """
     The name of a cost category must adhere to: ^(?! )[\p{L}\p{N}\p{Z}-_]*(?<! )$
 
     Replace any disallowed characters with '_'
+    Strip any leading or trailing whitepace
     """
-    return re.sub("[^a-zA-Z0-9 -]", "_", value)
+    return re.sub("[^a-zA-Z0-9 -]", "_", value).strip()
 
 
 def truncate_long_strings(string):
@@ -40,4 +41,4 @@ def safe_category_name(name):
     """
     Wrap utility functions needed for category names
     """
-    return strip_special_chars(truncate_long_strings(name))
+    return strip_invalid_chars(truncate_long_strings(name))
