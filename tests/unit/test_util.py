@@ -10,14 +10,14 @@ def test_parse_env_list():
     assert parsed_tag_list == expected_tag_list
 
 
-def test_strip_special_chars():
+def test_strip_invalid_chars():
     """Test removing unsafe characters from cost category names"""
 
-    unsafe_name = "foo & -bar"
+    unsafe_name = " foo & -bar "
 
     expected_safe_name = "foo _ -bar"
 
-    parsed_safe_name = cost_rules.util.strip_special_chars(unsafe_name)
+    parsed_safe_name = cost_rules.util.strip_invalid_chars(unsafe_name)
     assert parsed_safe_name == expected_safe_name
 
 
